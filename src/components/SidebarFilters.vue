@@ -8,6 +8,25 @@
       <button class="close-btn" @click="closeSidebar">×</button>
       <h2>Filtros do Mapa</h2>
       
+      <!-- Filtro de Período (Ano e Mês) -->
+      <div class="filtro-grupo">
+        <label class="group-label">Período de Referência</label>
+        <div class="periodo-row">
+          <div class="periodo-item">
+            <label class="periodo-label">Ano</label>
+            <select v-model="selectedAno" class="periodo-select">
+              <option v-for="ano in anos" :key="ano" :value="ano">{{ ano }}</option>
+            </select>
+          </div>
+          <div class="periodo-item">
+            <label class="periodo-label">Mês</label>
+            <select v-model="selectedMes" class="periodo-select">
+              <option v-for="mes in meses" :key="mes.valor" :value="mes.valor">{{ mes.nome }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
       <!-- Filtro de Distribuidoras -->
       <div class="filtro-grupo">
         <label class="group-label">Distribuidoras</label>
@@ -87,7 +106,7 @@
         </label>
         <label class="checkbox-item">
           <input type="checkbox" v-model="mostrarTorres" />
-          <span>Mostrar Torres de Transmissão</span>
+          <span>Mostrar localizações das distribuidoras</span>
         </label>
       </div>
       
@@ -109,6 +128,25 @@ import { distribuidoras } from '../service/mockData'
 
 const showSidebar = ref(false)
 const dropdownOpen = ref<string | null>(null)
+
+// Filtros de período
+const anos = ref([2022, 2023, 2024, 2025])
+const meses = ref([
+  { valor: 1, nome: 'Janeiro' },
+  { valor: 2, nome: 'Fevereiro' },
+  { valor: 3, nome: 'Março' },
+  { valor: 4, nome: 'Abril' },
+  { valor: 5, nome: 'Maio' },
+  { valor: 6, nome: 'Junho' },
+  { valor: 7, nome: 'Julho' },
+  { valor: 8, nome: 'Agosto' },
+  { valor: 9, nome: 'Setembro' },
+  { valor: 10, nome: 'Outubro' },
+  { valor: 11, nome: 'Novembro' },
+  { valor: 12, nome: 'Dezembro' }
+])
+const selectedAno = ref(2024)
+const selectedMes = ref(6) // Junho
 
 // Filtros
 const selectedDistribuidoras = ref<number[]>([])
@@ -176,6 +214,12 @@ function selectAllDistribuidoras(event: Event) {
   }
 }
 
+// Função para formatar período
+function getPeriodoFormatado(): string {
+  const mes = meses.value.find(m => m.valor === selectedMes.value)
+  return `${mes?.nome}/${selectedAno.value}`
+}
+
 // Funções principais
 function emitirFiltros() {
   const indicadoresDEC = {
@@ -193,6 +237,9 @@ function emitirFiltros() {
   }
   
   emit('aplicar-filtros', {
+    ano: selectedAno.value,
+    mes: selectedMes.value,
+    periodo: getPeriodoFormatado(),
     distribuidoras: selectedDistribuidoras.value,
     indicadoresDEC,
     indicadoresFEC,
@@ -208,6 +255,8 @@ function limparFiltros() {
   selectedIndicadoresFEC.value = ['FEC']
   showHeatmap.value = false
   mostrarTorres.value = true
+  selectedAno.value = 2024
+  selectedMes.value = 6
 }
 </script>
 
@@ -309,6 +358,45 @@ function limparFiltros() {
   color: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   padding-bottom: 5px;
+}
+
+/* Estilos para o período */
+.periodo-row {
+  display: flex;
+  gap: 12px;
+}
+
+.periodo-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.periodo-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.periodo-select {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.periodo-select:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.periodo-select option {
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
 }
 
 /* Custom Dropdown Styles */

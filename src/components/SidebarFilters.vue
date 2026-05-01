@@ -40,19 +40,15 @@
           <div class="dropdown-content" v-if="dropdownOpen === 'dec'">
             <label class="checkbox-option">
               <input type="checkbox" v-model="selectedIndicadoresDEC" value="DEC" />
-              <span>DEC</span>
-            </label>
-            <label class="checkbox-option">
-              <input type="checkbox" v-model="selectedIndicadoresDEC" value="DEC_realizado" />
-              <span>DEC Realizado</span>
+              <span>DEC (Valor Realizado)</span>
             </label>
             <label class="checkbox-option">
               <input type="checkbox" v-model="selectedIndicadoresDEC" value="DEC_limite" />
-              <span>DEC Limite</span>
+              <span>DEC Limite Regulatório</span>
             </label>
             <label class="checkbox-option">
               <input type="checkbox" v-model="selectedIndicadoresDEC" value="Desvio_DEC" />
-              <span>Desvio DEC</span>
+              <span>Desvio DEC (%)</span>
             </label>
           </div>
         </div>
@@ -69,19 +65,15 @@
           <div class="dropdown-content" v-if="dropdownOpen === 'fec'">
             <label class="checkbox-option">
               <input type="checkbox" v-model="selectedIndicadoresFEC" value="FEC" />
-              <span>FEC</span>
-            </label>
-            <label class="checkbox-option">
-              <input type="checkbox" v-model="selectedIndicadoresFEC" value="FEC_realizado" />
-              <span>FEC Realizado</span>
+              <span>FEC (Valor Realizado)</span>
             </label>
             <label class="checkbox-option">
               <input type="checkbox" v-model="selectedIndicadoresFEC" value="FEC_limite" />
-              <span>FEC Limite</span>
+              <span>FEC Limite Regulatório</span>
             </label>
             <label class="checkbox-option">
               <input type="checkbox" v-model="selectedIndicadoresFEC" value="Desvio_FEC" />
-              <span>Desvio FEC</span>
+              <span>Desvio FEC (%)</span>
             </label>
           </div>
         </div>
@@ -91,7 +83,7 @@
       <div class="filtro-grupo">
         <label class="checkbox-item">
           <input type="checkbox" v-model="showHeatmap" />
-          <span>Modo Heatmap</span>
+          <span>Modo Heatmap (intensidade por desvio)</span>
         </label>
         <label class="checkbox-item">
           <input type="checkbox" v-model="mostrarTorres" />
@@ -153,7 +145,7 @@ function toggleDropdown(dropdown: string) {
 
 // Funções de Label
 function getDistribuidorasLabel(): string {
-  if (selectedDistribuidoras.value.length === 0) return 'Selecione...'
+  if (selectedDistribuidoras.value.length === 0) return 'Todas as distribuidoras'
   if (selectedDistribuidoras.value.length === distribuidoras.length) return 'Todas'
   if (selectedDistribuidoras.value.length === 1) {
     const dist = distribuidoras.find(d => d.id === selectedDistribuidoras.value[0])
@@ -163,14 +155,14 @@ function getDistribuidorasLabel(): string {
 }
 
 function getIndicadoresDECLabel(): string {
-  if (selectedIndicadoresDEC.value.length === 0) return 'Nenhum selecionado'
-  if (selectedIndicadoresDEC.value.length === 4) return 'Todos selecionados'
+  if (selectedIndicadoresDEC.value.length === 0) return 'Nenhum indicador DEC'
+  if (selectedIndicadoresDEC.value.length === 3) return 'Todos DEC'
   return `${selectedIndicadoresDEC.value.length} selecionado(s)`
 }
 
 function getIndicadoresFECLabel(): string {
-  if (selectedIndicadoresFEC.value.length === 0) return 'Nenhum selecionado'
-  if (selectedIndicadoresFEC.value.length === 4) return 'Todos selecionados'
+  if (selectedIndicadoresFEC.value.length === 0) return 'Nenhum indicador FEC'
+  if (selectedIndicadoresFEC.value.length === 3) return 'Todos FEC'
   return `${selectedIndicadoresFEC.value.length} selecionado(s)`
 }
 
@@ -188,14 +180,14 @@ function selectAllDistribuidoras(event: Event) {
 function emitirFiltros() {
   const indicadoresDEC = {
     DEC: selectedIndicadoresDEC.value.includes('DEC'),
-    DEC_realizado: selectedIndicadoresDEC.value.includes('DEC_realizado'),
+    DEC_realizado: selectedIndicadoresDEC.value.includes('DEC'),
     DEC_limite: selectedIndicadoresDEC.value.includes('DEC_limite'),
     Desvio_DEC: selectedIndicadoresDEC.value.includes('Desvio_DEC')
   }
   
   const indicadoresFEC = {
     FEC: selectedIndicadoresFEC.value.includes('FEC'),
-    FEC_realizado: selectedIndicadoresFEC.value.includes('FEC_realizado'),
+    FEC_realizado: selectedIndicadoresFEC.value.includes('FEC'),
     FEC_limite: selectedIndicadoresFEC.value.includes('FEC_limite'),
     Desvio_FEC: selectedIndicadoresFEC.value.includes('Desvio_FEC')
   }

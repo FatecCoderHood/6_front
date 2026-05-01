@@ -7,19 +7,17 @@
       :sam="sam"
       @update-metricas="updateMetricas"
     />
-    <div v-if="tam !== null && sam !== null" class="metrics-card">
-      <div><b>TAM:</b> {{ tam }}</div>
-      <div><b>SAM:</b> {{ sam }}</div>
-    </div>
-    <button v-if="tam !== null && sam !== null" class="btn-report-float" @click="showReport = true">
-      <span>Gerar Relatório PDF</span>
-    </button>
-    <ReportModal
-      v-if="showReport"
+    
+    <!-- Componente flutuante expansível -->
+    <FloatingMetrics
+      v-if="tam !== null && sam !== null"
       :tam="tam"
       :sam="sam"
-      :filtros="filtros"
-      @close="showReport = false"
+      :dec="dec"
+      :fec="fec"
+      :decLimite="decLimite"
+      :fecLimite="fecLimite"
+      @close="fecharMetricas"
     />
   </div>
 </template>
@@ -28,19 +26,32 @@
 import { ref } from 'vue'
 import SidebarFilters from '../components/SidebarFilters.vue'
 import MapView from '../components/MapView.vue'
-import ReportModal from '../components/ReportModal.vue'
+import FloatingMetrics from '../components/FloatingMetrics.vue'
 
 const filtros = ref({ 
-  distribuidora: '', 
-  situacao: '', 
-  dataInicial: '', 
-  dataFinal: '', 
-  indicadores: { DEC: true, FEC: true }, 
-  heatmap: false 
+  distribuidoras: [],
+  indicadoresDEC: {
+    DEC: true,
+    DEC_realizado: false,
+    DEC_limite: false,
+    Desvio_DEC: false
+  },
+  indicadoresFEC: {
+    FEC: true,
+    FEC_realizado: false,
+    FEC_limite: false,
+    Desvio_FEC: false
+  },
+  heatmap: false,
+  mostrarTorres: true
 })
+
 const tam = ref<number|null>(null)
 const sam = ref<number|null>(null)
-const showReport = ref(false)
+const dec = ref<number>(7.68)
+const fec = ref<number>(3.68)
+const decLimite = ref<number>(6.50)
+const fecLimite = ref<number>(3.20)
 
 function aplicarFiltros(f: any) {
   filtros.value = f
@@ -51,6 +62,11 @@ function aplicarFiltros(f: any) {
 function updateMetricas({ tam: t, sam: s }: { tam: number, sam: number }) {
   tam.value = t
   sam.value = s
+}
+
+function fecharMetricas() {
+  tam.value = null
+  sam.value = null
 }
 </script>
 
@@ -66,49 +82,5 @@ function updateMetricas({ tam: t, sam: s }: { tam: number, sam: number }) {
   height: 100vh;
   position: relative;
   overflow: hidden;
-}
-
-.metrics-card {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.95);
-  color: #232323;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  padding: 12px 24px;
-  font-size: 1rem;
-  z-index: 1000;
-  display: flex;
-  gap: 24px;
-  align-items: center;
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  font-weight: 500;
-  pointer-events: none;
-}
-
-.btn-report-float {
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
-  z-index: 1000;
-  background: #1976d2;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 24px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-report-float:hover {
-  background: #1565c0;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
 }
 </style>

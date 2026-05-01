@@ -6,9 +6,8 @@
     @mousedown="startDrag"
   >
     <!-- Header do componente -->
-    <div class="metrics-header" @click="handleHeaderClick">
+    <div class="metrics-header">
       <div class="header-left">
-        <span class="expand-icon">{{ isExpanded && !isMinimized ? '▼' : '▲' }}</span>
         <span class="header-title">Detalhe do recorte selecionado</span>
       </div>
       <div class="header-right" @click.stop>
@@ -48,7 +47,7 @@
       />
     </div>
 
-    <!-- Conteúdo expandido (não minimizado) -->
+    <!-- Conteúdo expandido -->
     <div v-if="isExpanded && !isMinimized && !isHidden" class="metrics-content">
       <!-- Classificação de criticidade -->
       <div class="criticidade-section">
@@ -93,7 +92,7 @@
         </div>
       </div>
 
-      <!-- Indicadores principais (DEC e FEC) -->
+      <!-- Indicadores principais -->
       <div class="indicadores-principais">
         <div class="indicador-card">
           <div class="card-header">DEC</div>
@@ -151,14 +150,17 @@
     </div>
   </div>
 
-  <!-- Botão flutuante para reabrir quando oculto (embaixo dos botões de desenho) -->
+  <!-- Botão flutuante para reabrir - posicionado mais à direita do botão de filtro -->
   <button 
     v-if="isHidden" 
     class="reopen-btn" 
     @click="reopenModal" 
     title="Reabrir métricas"
   >
-    👁️
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
   </button>
 </template>
 
@@ -273,19 +275,6 @@ function restoreWindow() {
   isMinimized.value = false
   isExpanded.value = true
   nextTick(() => initChart())
-}
-
-function handleHeaderClick() {
-  if (isHidden.value) return
-  if (!isMinimized.value && !isExpanded.value) {
-    isExpanded.value = true
-    nextTick(() => initChart())
-  } else if (!isMinimized.value) {
-    isExpanded.value = !isExpanded.value
-    if (isExpanded.value) {
-      nextTick(() => initChart())
-    }
-  }
 }
 
 // Dados
@@ -452,7 +441,7 @@ onUnmounted(() => {
 .floating-metrics.minimized .metrics-header {
   border-radius: 12px;
   border-bottom: none;
-  cursor: pointer;
+  cursor: default;
 }
 
 .header-left {
@@ -460,11 +449,6 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   pointer-events: none;
-}
-
-.expand-icon {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
 }
 
 .header-title {
@@ -504,31 +488,32 @@ onUnmounted(() => {
   border-color: #ff4444;
 }
 
-/* Botão para reabrir */
 .reopen-btn {
   position: fixed;
-  bottom: 20px;
-  left: 116px;
+  left: 215px;
+  top: 20px;
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.75);
+  background: transparent;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #FFD700;
-  font-size: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  z-index: 1002;
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
 }
 
+.reopen-btn svg {
+  stroke: white;
+}
+
 .reopen-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.8);
   transform: scale(1.05);
-  background: rgba(0, 0, 0, 0.9);
-  border-color: #FFD700;
 }
 
 .minimized-content {

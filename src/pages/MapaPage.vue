@@ -2,18 +2,24 @@
   <div class="mapa-page">
     <SidebarFilters @aplicar-filtros="aplicarFiltros" />
     <MapView
+      ref="mapViewRef"
       :filtros="filtros"
       @update-metricas="updateMetricas"
     />
     
     <FloatingMetrics
-      v-if="mostrarMetricas"
+      :key="componentKey"
+      v-if="metricas.tam !== 0 && metricas.sam !== 0"
       :tam="metricas.tam"
       :sam="metricas.sam"
       :dec="metricas.dec"
       :fec="metricas.fec"
       :decLimite="metricas.decLimite"
       :fecLimite="metricas.fecLimite"
+      :totalLinhas="metricas.totalLinhas"
+      :area="metricas.area"
+      :distribuidora="metricas.distribuidora"
+      :polygonImage="polygonImage"
       @close="fecharMetricas"
     />
   </div>
@@ -24,7 +30,9 @@ import { ref } from 'vue'
 import SidebarFilters from '../components/SidebarFilters.vue'
 import MapView from '../components/MapView.vue'
 import FloatingMetrics from '../components/FloatingMetrics.vue'
+import html2canvas from 'html2canvas'
 
+const mapViewRef = ref<InstanceType<typeof MapView> | null>(null)
 const filtros = ref({ 
   distribuidoras: [],
   indicadoresDEC: {
@@ -44,8 +52,8 @@ const filtros = ref({
   periodo: 'Junho/2024'
 })
 
-const mostrarMetricas = ref(false)
-let timeoutId: any = null
+const componentKey = ref(0)
+const polygonImage = ref('')
 
 const metricas = ref({
   tam: 0,
@@ -53,50 +61,60 @@ const metricas = ref({
   dec: 0,
   fec: 0,
   decLimite: 6.5,
-  fecLimite: 3.2
+  fecLimite: 3.2,
+  totalLinhas: 0,
+  area: 0,
+  distribuidora: ''
 })
 
-function aplicarFiltros(f: any) {
-  filtros.value = f
-  // Fecha o painel ao aplicar filtros
-  mostrarMetricas.value = false
-  metricas.value = {
-    tam: 0,
-    sam: 0,
-    dec: 0,
-    fec: 0,
-    decLimite: 6.5,
-    fecLimite: 3.2
+async function capturarImagemPoligono() {
+  // Pega o elemento do mapa
+  const mapElement = document.querySelector('#map')
+  if (!mapElement) return ''
+  
+  try {
+    const canvas = await html2canvas(mapElement as HTMLElement, {
+      scale: 0.5,
+      backgroundColor: '#1a1a1a',
+      useCORS: true
+    })
+    return canvas.toDataURL('image/png')
+  } catch (error) {
+    console.error('Erro ao capturar imagem:', error)
+    return ''
   }
 }
 
-function updateMetricas(data: any) {
+async function updateMetricas(data: any) {
   console.log('MapaPage recebeu novas métricas:', data)
   
-  // Primeiro, esconde o painel atual
-  mostrarMetricas.value = false
+  // Captura a imagem do mapa
+  const imagem = await capturarImagemPoligono()
+  polygonImage.value = imagem
   
-  // Pequeno delay para garantir que o componente foi destruído
-  if (timeoutId) clearTimeout(timeoutId)
-  
-  timeoutId = setTimeout(() => {
-    // Atualiza os dados
-    metricas.value = {
-      tam: data.tam,
-      sam: data.sam,
-      dec: data.dec,
-      fec: data.fec,
-      decLimite: data.decLimite,
-      fecLimite: data.fecLimite
-    }
-    // Mostra o painel com os novos dados
-    mostrarMetricas.value = true
-    timeoutId = null
-  }, 50)
+  metricas.value = {
+    tam: data.tam,
+    sam: data.sam,
+    dec: data.dec,
+    fec: data.fec,
+    decLimite: data.decLimite,
+    fecLimite: data.fecLimite,
+    totalLinhas: data.totalLinhas || 0,
+    area: data.area || 0,
+    distribuidora: data.distribuidora || ''
+  }
+  componentKey.value++
+}
+
+function aplicarFiltros(f: any) {
+  filtros.value = f
+  componentKey.value++
+  polygonImage.value = ''
 }
 
 function fecharMetricas() {
-  mostrarMetricas.value = false
+  componentKey.value++
+  polygonImage.value = ''
 }
 </script>
 

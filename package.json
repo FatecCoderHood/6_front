@@ -9,7 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.5.32"
+    "@mdi/js": "^7.4.47",
+    "chart.js": "^4.5.1",
+    "jspdf": "^2.5.2",
+    "leaflet": "^1.9.4",
+    "leaflet-draw": "^1.0.4",
+    "leaflet.heat": "^0.2.0",
+    "vue": "^3.5.32",
+    "vue-router": "^5.0.6"
   },
   "devDependencies": {
     "@types/node": "^24.12.2",

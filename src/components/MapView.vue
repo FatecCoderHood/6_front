@@ -12,49 +12,15 @@ import { linhasEnergia, distribuidoras } from '../service/mockData'
 import { mdiTransmissionTower } from '@mdi/js'
 
 const props = defineProps<{ filtros: any }>()
-const emit = defineEmits(['update-metricas', 'polygon-drawn'])
+const emit = defineEmits(['update-metricas'])
 
 let map: L.Map
 let drawnItems: L.FeatureGroup
 let drawControl: any
 let linesLayer: L.LayerGroup
 let towersLayer: L.LayerGroup
-let currentPolygonLayer: any = null
 
-// Função para capturar imagem do polígono
-async function capturePolygonImage(polygonLayer: any): Promise<string> {
-  if (!map || !polygonLayer) return ''
-  
-  // Obtém os bounds do polígono
-  const bounds = polygonLayer.getBounds()
-  
-  // Salva o estado atual do zoom
-  const currentZoom = map.getZoom()
-  const currentCenter = map.getCenter()
-  
-  // Ajusta o zoom para focar no polígono
-  map.fitBounds(bounds, { padding: [50, 50] })
-  
-  // Aguarda o mapa estabilizar
-  await new Promise(resolve => setTimeout(resolve, 300))
-  
-  // Captura a imagem do mapa
-  const leafletMap = map as any
-  const imageData = await new Promise<string>((resolve) => {
-    leafletMap.once('moveend', async () => {
-      const canvas = (leafletMap.getContainer().querySelector('.leaflet-pane.leaflet-map-pane') as HTMLElement)
-      // Usa html2canvas se disponível, ou retorna string vazia
-      resolve('')
-    })
-    setTimeout(() => resolve(''), 500)
-  })
-  
-  // Restaura o zoom original
-  map.setView(currentCenter, currentZoom)
-  
-  return imageData
-}
-
+// Função para verificar se um ponto está dentro do polígono
 function isPointInPolygon(point: [number, number], polygon: L.LatLng[][]): boolean {
   let inside = false
   const polygonPoints = polygon[0]
@@ -71,6 +37,7 @@ function isPointInPolygon(point: [number, number], polygon: L.LatLng[][]): boole
   return inside
 }
 
+// Função para verificar se uma linha cruza o polígono
 function lineIntersectsPolygon(lineCoords: [number, number][], polygon: L.LatLng[][]): boolean {
   for (const point of lineCoords) {
     if (isPointInPolygon(point, polygon)) {
@@ -80,14 +47,17 @@ function lineIntersectsPolygon(lineCoords: [number, number][], polygon: L.LatLng
   return false
 }
 
+// Função que calcula métricas REAIS baseadas nas linhas dentro do polígono
 function calculateRealMetricsFromPolygon(polygonLayer: any) {
   const polygonLatLngs = polygonLayer.getLatLngs()
   
+  // Filtrar linhas por distribuidora (se houver filtro)
   let linhas = [...linhasEnergia]
   if (props.filtros.distribuidoras && props.filtros.distribuidoras.length > 0) {
     linhas = linhas.filter(l => props.filtros.distribuidoras.includes(l.distribuidoraId))
   }
   
+  // Linhas dentro do polígono
   const linhasNoPoligono: typeof linhasEnergia = []
   
   for (const linha of linhas) {
@@ -102,6 +72,7 @@ function calculateRealMetricsFromPolygon(polygonLayer: any) {
     return null
   }
   
+  // Calcular médias
   let totalDEC = 0
   let totalFEC = 0
   let totalComprimento = 0
@@ -114,6 +85,7 @@ function calculateRealMetricsFromPolygon(polygonLayer: any) {
   
   const count = linhasNoPoligono.length
   
+  // Calcular distribuidora predominante
   const distribCount: Record<number, number> = {}
   for (const linha of linhasNoPoligono) {
     distribCount[linha.distribuidoraId] = (distribCount[linha.distribuidoraId] || 0) + 1
@@ -128,34 +100,29 @@ function calculateRealMetricsFromPolygon(polygonLayer: any) {
   }
   const distribPredominante = distribuidoras.find(d => d.id === predominantDistId)
   
-  const bounds = polygonLayer.getBounds()
-  const area = bounds.getArea() / 1000000
+  // TAM e SAM baseados no comprimento total das linhas
+  const tam = totalComprimento * 50
+  const sam = totalComprimento * 25
   
-  // Calcula centro do polígono para capturar imagem
-  const center = bounds.getCenter()
-  
-  const result = {
-    tam: totalComprimento * 50,
-    sam: totalComprimento * 25,
+  return {
+    tam: tam,
+    sam: sam,
     dec: totalDEC / count,
     fec: totalFEC / count,
     decLimite: linhasNoPoligono[0]?.dec_limite || 6.5,
     fecLimite: linhasNoPoligono[0]?.fec_limite || 3.2,
     totalLinhas: count,
-    area: area,
-    distribuidora: distribPredominante?.nome || 'Múltiplas',
-    centerLat: center.lat,
-    centerLng: center.lng
+    distribuidora: distribPredominante?.nome || 'Múltiplas'
   }
-  
-  return result
 }
 
 function filtrarLinhas() {
   let linhas = [...linhasEnergia]
+  
   if (props.filtros.distribuidoras && props.filtros.distribuidoras.length > 0) {
     linhas = linhas.filter(l => props.filtros.distribuidoras.includes(l.distribuidoraId))
   }
+  
   return linhas
 }
 
@@ -314,7 +281,7 @@ function initMap() {
   
   drawControl = new (L.Control as any).Draw({
     position: 'topright',
-    edit: { featureGroup: drawnItems, remove: true },
+    edit: { featureGroup: drawnItems },
     draw: {
       polygon: {
         shapeOptions: { color: '#ff4444', weight: 3, opacity: 0.7, fillOpacity: 0.2 },
@@ -332,22 +299,19 @@ function initMap() {
   })
   map.addControl(drawControl)
   
+  // Evento principal - quando o usuário FINALIZA o desenho
   map.on(L.Draw.Event.CREATED, function(e: any) {
     const layer = e.layer
+    
+    // Limpar desenhos anteriores
     drawnItems.clearLayers()
     drawnItems.addLayer(layer)
     
+    // Calcular métricas REAIS baseadas nas linhas dentro do polígono
     const metrics = calculateRealMetricsFromPolygon(layer)
     
     if (metrics) {
-      // Salva o polígono atual para referência
-      currentPolygonLayer = layer
-      
-      emit('update-metricas', {
-        ...metrics,
-        polygonBounds: layer.getBounds(),
-        polygonLatLngs: layer.getLatLngs()
-      })
+      emit('update-metricas', metrics)
     }
   })
   
@@ -361,7 +325,6 @@ watch(() => props.filtros, () => {
     if (drawnItems) {
       drawnItems.clearLayers()
     }
-    currentPolygonLayer = null
   }
 }, { deep: true })
 
@@ -369,12 +332,6 @@ onMounted(() => {
   nextTick(() => {
     initMap()
   })
-})
-
-// Expor função para capturar imagem do polígono atual
-defineExpose({
-  getCurrentPolygonBounds: () => currentPolygonLayer?.getBounds(),
-  getCurrentPolygonLayer: () => currentPolygonLayer
 })
 </script>
 

@@ -493,7 +493,7 @@ onUnmounted(() => {
 
 .reopen-btn {
   position: fixed;
-  left: 215px;
+  left: 270px;
   top: 20px;
   width: 40px;
   height: 40px;

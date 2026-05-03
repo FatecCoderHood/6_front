@@ -4,14 +4,15 @@
 
 <script setup lang="ts">
 import { onMounted, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
 import 'leaflet-draw'
-import { linhasEnergia, distribuidoras, calcularTAM, calcularSAM } from '../service/mockData'
+import { linhasEnergia, distribuidoras } from '../service/mockData'
 import { mdiTransmissionTower } from '@mdi/js'
 
-const props = defineProps<{ filtros: any, tam: number|null, sam: number|null, drawMode?: boolean }>()
+const props = defineProps<{ filtros: any }>()
 const emit = defineEmits(['update-metricas'])
 
 let map: L.Map
@@ -20,15 +21,111 @@ let drawControl: any
 let linesLayer: L.LayerGroup
 let towersLayer: L.LayerGroup
 
-function filtrarLinhas() {
-  let linhas = [...linhasEnergia]
+const { t } = useI18n()
+
+// Função para verificar se um ponto está dentro do polígono
+function isPointInPolygon(point: [number, number], polygon: L.LatLng[][]): boolean {
+  let inside = false
+  const polygonPoints = polygon[0]
+  for (let i = 0, j = polygonPoints.length - 1; i < polygonPoints.length; j = i++) {
+    const xi = polygonPoints[i].lat
+    const yi = polygonPoints[i].lng
+    const xj = polygonPoints[j].lat
+    const yj = polygonPoints[j].lng
+    
+    const intersect = ((yi > point[1]) !== (yj > point[1])) &&
+      (point[0] < (xj - xi) * (point[1] - yi) / (yj - yi) + xi)
+    if (intersect) inside = !inside
+  }
+  return inside
+}
+
+// Função para verificar se uma linha cruza o polígono
+function lineIntersectsPolygon(lineCoords: [number, number][], polygon: L.LatLng[][]): boolean {
+  for (const point of lineCoords) {
+    if (isPointInPolygon(point, polygon)) {
+      return true
+    }
+  }
+  return false
+}
+
+// Função que calcula métricas REAIS baseadas nas linhas dentro do polígono
+function calculateRealMetricsFromPolygon(polygonLayer: any) {
+  const polygonLatLngs = polygonLayer.getLatLngs()
   
-  // Filtro por distribuidoras
+  // Filtrar linhas por distribuidora (se houver filtro)
+  let linhas = [...linhasEnergia]
   if (props.filtros.distribuidoras && props.filtros.distribuidoras.length > 0) {
     linhas = linhas.filter(l => props.filtros.distribuidoras.includes(l.distribuidoraId))
   }
   
-  console.log('Linhas após filtro:', linhas.length) // Debug
+  // Linhas dentro do polígono
+  const linhasNoPoligono: typeof linhasEnergia = []
+  
+  for (const linha of linhas) {
+    const lineLatLngs = linha.coordinates.map(coord => [coord[1], coord[0]]) as [number, number][]
+    
+    if (lineIntersectsPolygon(lineLatLngs, polygonLatLngs)) {
+      linhasNoPoligono.push(linha)
+    }
+  }
+  
+  if (linhasNoPoligono.length === 0) {
+    return null
+  }
+  
+  // Calcular médias
+  let totalDEC = 0
+  let totalFEC = 0
+  let totalComprimento = 0
+  
+  for (const linha of linhasNoPoligono) {
+    totalDEC += linha.dec_realizado
+    totalFEC += linha.fec_realizado
+    totalComprimento += linha.coordinates.length
+  }
+  
+  const count = linhasNoPoligono.length
+  
+  // Calcular distribuidora predominante
+  const distribCount: Record<number, number> = {}
+  for (const linha of linhasNoPoligono) {
+    distribCount[linha.distribuidoraId] = (distribCount[linha.distribuidoraId] || 0) + 1
+  }
+  let predominantDistId = 1
+  let maxCount = 0
+  for (const [id, c] of Object.entries(distribCount)) {
+    if (c > maxCount) {
+      maxCount = c
+      predominantDistId = parseInt(id)
+    }
+  }
+  const distribPredominante = distribuidoras.find(d => d.id === predominantDistId)
+  
+  // TAM e SAM baseados no comprimento total das linhas
+  const tam = totalComprimento * 50
+  const sam = totalComprimento * 25
+  
+  return {
+    tam: tam,
+    sam: sam,
+    dec: totalDEC / count,
+    fec: totalFEC / count,
+    decLimite: linhasNoPoligono[0]?.dec_limite || 6.5,
+    fecLimite: linhasNoPoligono[0]?.fec_limite || 3.2,
+    totalLinhas: count,
+    distribuidora: distribPredominante?.nome || 'Múltiplas'
+  }
+}
+
+function filtrarLinhas() {
+  let linhas = [...linhasEnergia]
+  
+  if (props.filtros.distribuidoras && props.filtros.distribuidoras.length > 0) {
+    linhas = linhas.filter(l => props.filtros.distribuidoras.includes(l.distribuidoraId))
+  }
+  
   return linhas
 }
 
@@ -47,13 +144,12 @@ function getValorIndicador(linha: any, indicador: string): number {
 }
 
 function getCorPorDesvio(desvioPercentual: number): string {
-  if (desvioPercentual >= 10) return '#ff4444'   // Vermelho - crítico
-  if (desvioPercentual > 0) return '#ffaa44'    // Laranja - atenção
-  return '#44ff44'                               // Verde - saudável
+  if (desvioPercentual >= 10) return '#ff4444'
+  if (desvioPercentual > 0) return '#ffaa44'
+  return '#44ff44'
 }
 
 function getCorParaLinha(linha: any): string {
-  // Pega o primeiro indicador ativo de DEC ou FEC
   const indicadoresAtivosDEC = Object.entries(props.filtros.indicadoresDEC || {})
     .filter(([_, ativo]) => ativo === true)
     .map(([nome]) => nome)
@@ -65,13 +161,12 @@ function getCorParaLinha(linha: any): string {
   const todosIndicadores = [...indicadoresAtivosDEC, ...indicadoresAtivosFEC]
   
   if (todosIndicadores.length === 0) {
-    return '#1976d2' // azul padrão
+    return '#1976d2'
   }
   
   const primeiroIndicador = todosIndicadores[0]
   let valor = getValorIndicador(linha, primeiroIndicador)
   
-  // Se for DEC ou FEC (valor realizado), calcula desvio percentual
   if (primeiroIndicador === 'DEC' || primeiroIndicador === 'DEC_realizado') {
     const limite = linha.dec_limite
     if (limite && limite > 0) {
@@ -98,28 +193,19 @@ function renderizarLinhas() {
   
   const linhas = filtrarLinhas()
   
-  if (linhas.length === 0) {
-    console.warn('Nenhuma linha encontrada para renderizar')
-    return
-  }
-  
   linhas.forEach(linha => {
     const distrib = distribuidoras.find(d => d.id === linha.distribuidoraId)
     const cor = getCorParaLinha(linha)
     
-    // Converte coordenadas para o formato correto do Leaflet
     const latLngs = linha.coordinates.map((coord: [number, number]) => [coord[1], coord[0]])
     
     const polyline = L.polyline(latLngs as L.LatLngExpression[], {
       color: cor,
       weight: 5,
-      opacity: 0.9,
-      lineCap: 'round',
-      lineJoin: 'round'
+      opacity: 0.9
     }).addTo(linesLayer)
     
-    // Popup com informações
-    let popupContent = `<b>${linha.name || distrib?.nome || 'Linha de Energia'}</b><br><hr>`
+    let popupContent = `<b>${linha.name || distrib?.nome || t('map.line')}</b><br><hr>`
     popupContent += `<b>DEC:</b> ${linha.dec_realizado.toFixed(2)} (limite: ${linha.dec_limite.toFixed(2)})<br>`
     popupContent += `<b>Desvio DEC:</b> ${linha.desvio_dec >= 0 ? '+' : ''}${linha.desvio_dec.toFixed(1)}%<br>`
     popupContent += `<b>FEC:</b> ${linha.fec_realizado.toFixed(2)} (limite: ${linha.fec_limite.toFixed(2)})<br>`
@@ -128,7 +214,6 @@ function renderizarLinhas() {
     polyline.bindPopup(popupContent)
   })
   
-  // Renderizar torres se necessário
   if (props.filtros.mostrarTorres !== false) {
     renderizarTorres()
   }
@@ -147,7 +232,6 @@ function renderizarTorres() {
   
   linhas.forEach(linha => {
     const distrib = distribuidoras.find(d => d.id === linha.distribuidoraId)
-    // Pega o ponto médio da linha
     const coords = linha.coordinates
     const midIndex = Math.floor(coords.length / 2)
     const midPoint = coords[midIndex]
@@ -165,8 +249,8 @@ function renderizarTorres() {
     L.marker([midPoint[1], midPoint[0]], { icon: torreIcon })
       .addTo(towersLayer)
       .bindPopup(`
-        <b>${linha.name || distrib?.nome || 'Torre'}</b><br>
-        Torre de Transmissão<br>
+        <b>${linha.name || distrib?.nome || t('map.tower')}</b><br>
+        ${t('map.transmission_tower')}<br>
         DEC: ${linha.dec_realizado.toFixed(2)} | FEC: ${linha.fec_realizado.toFixed(2)}
       `)
   })
@@ -198,6 +282,7 @@ function initMap() {
   drawnItems = new L.FeatureGroup()
   map.addLayer(drawnItems)
   
+  // Configuração do Draw - APENAS POLÍGONO (retângulo removido)
   drawControl = new (L.Control as any).Draw({
     position: 'topright',
     edit: { featureGroup: drawnItems },
@@ -205,11 +290,9 @@ function initMap() {
       polygon: {
         shapeOptions: { color: '#ff4444', weight: 3, opacity: 0.7, fillOpacity: 0.2 },
         allowIntersection: false,
-        drawError: { color: '#ff4444', message: 'Desenho inválido!' }
+        drawError: { color: '#ff4444', message: t('map.drawError') }
       },
-      rectangle: {
-        shapeOptions: { color: '#ff4444', weight: 3, opacity: 0.7, fillOpacity: 0.2 }
-      },
+      rectangle: false,
       circle: false,
       circlemarker: false,
       marker: false,
@@ -218,27 +301,35 @@ function initMap() {
   })
   map.addControl(drawControl)
   
-  map.on(L.Draw.Event.CREATED, function (e: any) {
+  // Evento principal - quando o usuário FINALIZA o desenho
+  map.on(L.Draw.Event.CREATED, function(e: any) {
+    const layer = e.layer
+    
+    // Limpar desenhos anteriores
     drawnItems.clearLayers()
-    drawnItems.addLayer(e.layer)
-    const tam = calcularTAM(e.layer)
-    const sam = calcularSAM(e.layer)
-    emit('update-metricas', { tam, sam })
+    drawnItems.addLayer(layer)
+    
+    // Calcular métricas REAIS baseadas nas linhas dentro do polígono
+    const metrics = calculateRealMetricsFromPolygon(layer)
+    
+    if (metrics) {
+      emit('update-metricas', metrics)
+    }
   })
   
-  // Renderiza as linhas
   renderizarLinhas()
 }
 
-// Observa mudanças nos filtros
 watch(() => props.filtros, () => {
   if (map) {
     limparMapa()
     renderizarLinhas()
+    if (drawnItems) {
+      drawnItems.clearLayers()
+    }
   }
 }, { deep: true })
 
-// Inicializa o mapa quando o componente for montado
 onMounted(() => {
   nextTick(() => {
     initMap()
@@ -271,7 +362,6 @@ onMounted(() => {
   transform: scale(1.15);
 }
 
-/* Estilizar a barra de ferramentas de desenho */
 .leaflet-draw-toolbar a {
   background-color: rgba(0, 0, 0, 0.7) !important;
   backdrop-filter: blur(5px) !important;

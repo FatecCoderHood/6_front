@@ -8,13 +8,13 @@
     <!-- Header do componente -->
     <div class="metrics-header">
       <div class="header-left">
-        <span class="header-title">Detalhe do recorte selecionado</span>
+        <span class="header-title">{{ t('floating.headerTitle') }}</span>
       </div>
       <div class="header-right" @click.stop>
         <button 
           class="icon-btn" 
           @click="toggleMinimize" 
-          :title="isMinimized ? 'Expandir' : 'Minimizar'"
+          :title="isMinimized ? t('floating.expand') : t('floating.minimize')"
         >
           {{ isMinimized ? '□' : '─' }}
         </button>
@@ -22,13 +22,13 @@
           v-if="!isMinimized && isExpanded && !isHidden" 
           class="icon-btn" 
           @click="gerarRelatorio" 
-          title="Gerar Relatório PDF"
+          :title="t('floating.generatePdf')"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
             <path :d="mdiFilePdfBox" />
           </svg>
         </button>
-        <button class="icon-btn close-btn" @click="hideModal" title="Fechar">
+        <button class="icon-btn close-btn" @click="hideModal" :title="t('floating.close')">
           ✕
         </button>
       </div>
@@ -51,7 +51,7 @@
     <div v-if="isExpanded && !isMinimized && !isHidden" class="metrics-content">
       <!-- Classificação de criticidade -->
       <div class="criticidade-section">
-        <span class="criticidade-label">CLASSIFICAÇÃO DE CRITICIDADE</span>
+        <span class="criticidade-label">{{ t('floating.criticidade') }}</span>
         <span class="criticidade-value" :class="getCriticidadeClass()">
           {{ getCriticidade() }}
         </span>
@@ -64,29 +64,29 @@
           <span class="indicador-nome">{{ indicadorPrincipal.nome }}</span>
         </div>
         <div class="indicador-limite">
-          <span>Limite regulatório: {{ indicadorPrincipal.limite.toFixed(2) }}</span>
-          <span class="referencia">Referência para leitura de criticidade</span>
+          <span>{{ t('floating.limitLabel') }}: {{ indicadorPrincipal.limite.toFixed(2) }}</span>
+          <span class="referencia">{{ t('floating.reference') }}</span>
         </div>
       </div>
 
       <!-- Contexto operacional -->
       <div class="contexto-section">
-        <h4>CONTEXTO OPERACIONAL</h4>
+        <h4>{{ t('floating.contextTitle') }}</h4>
         <div class="contexto-grid">
           <div class="contexto-item">
-            <span class="label">Distribuidora:</span>
+            <span class="label">{{ t('floating.labelDistributor') }}</span>
             <span class="value">{{ contexto.distribuidora }}</span>
           </div>
           <div class="contexto-item">
-            <span class="label">Estado:</span>
+            <span class="label">{{ t('floating.labelState') }}</span>
             <span class="value">{{ contexto.estado }}</span>
           </div>
           <div class="contexto-item">
-            <span class="label">Subestação:</span>
+            <span class="label">{{ t('floating.labelSubstation') }}</span>
             <span class="value">{{ contexto.subestacao }}</span>
           </div>
           <div class="contexto-item">
-            <span class="label">Período de referência:</span>
+            <span class="label">{{ t('floating.labelPeriod') }}</span>
             <span class="value">{{ contexto.periodo }}</span>
           </div>
         </div>
@@ -97,12 +97,12 @@
         <div class="indicador-card">
           <div class="card-header">DEC</div>
           <div class="card-valor">{{ dec.valor.toFixed(2) }}</div>
-          <div class="card-limite">Limite {{ dec.limite.toFixed(2) }}</div>
+          <div class="card-limite">{{ t('report.limit') }} {{ dec.limite.toFixed(2) }}</div>
         </div>
         <div class="indicador-card">
           <div class="card-header">FEC</div>
           <div class="card-valor">{{ fec.valor.toFixed(2) }}</div>
-          <div class="card-limite">Limite {{ fec.limite.toFixed(2) }}</div>
+          <div class="card-limite">{{ t('report.limit') }} {{ fec.limite.toFixed(2) }}</div>
         </div>
       </div>
 
@@ -123,17 +123,17 @@
 
       <!-- Leituras complementares -->
       <div class="complementares-section">
-        <h4>LEITURAS COMPLEMENTARES</h4>
+        <h4>{{ t('floating.complementaryTitle') }}</h4>
         <div class="complementares-grid">
           <div class="complementar-card">
-            <div class="card-header">PERDAS TÉCNICAS</div>
+            <div class="card-header">{{ t('report.lossTechnical') }}</div>
             <div class="card-valor">{{ perdasTecnicas.valor.toFixed(2) }}%</div>
-            <div class="card-limite">Limite {{ perdasTecnicas.limite.toFixed(2) }}%</div>
+            <div class="card-limite">{{ t('report.limit') }} {{ perdasTecnicas.limite.toFixed(2) }}%</div>
           </div>
           <div class="complementar-card">
-            <div class="card-header">PERDAS NÃO TÉCNICAS</div>
+            <div class="card-header">{{ t('report.lossNonTechnical') }}</div>
             <div class="card-valor">{{ perdasNaoTecnicas.valor.toFixed(2) }}%</div>
-            <div class="card-limite">Limite {{ perdasNaoTecnicas.limite.toFixed(2) }}%</div>
+            <div class="card-limite">{{ t('report.limit') }} {{ perdasNaoTecnicas.limite.toFixed(2) }}%</div>
           </div>
         </div>
       </div>
@@ -141,9 +141,9 @@
 
     <!-- Conteúdo minimizado -->
     <div v-if="isMinimized && !isHidden" class="minimized-content" @click="restoreWindow">
-      <div class="minimized-stats">
-        <span class="stat">TAM: {{ tam.toFixed(2) }}</span>
-        <span class="stat">SAM: {{ sam.toFixed(2) }}</span>
+        <div class="minimized-stats">
+        <span class="stat">{{ t('report.tam') }}: {{ tam.toFixed(2) }}</span>
+        <span class="stat">{{ t('report.sam') }}: {{ sam.toFixed(2) }}</span>
         <span class="stat">DEC: {{ dec.valor.toFixed(2) }}</span>
         <span class="stat">FEC: {{ fec.valor.toFixed(2) }}</span>
       </div>
@@ -155,7 +155,7 @@
     v-if="isHidden" 
     class="reopen-btn" 
     @click="reopenModal" 
-    title="Reabrir métricas"
+    :title="t('floating.reopen')"
   >
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -166,6 +166,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
 import ReportPdf from './ReportPdf.vue'
 import { mdiFilePdfBox } from '@mdi/js'
@@ -180,6 +181,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close'])
+
+const { t } = useI18n()
 
 const isExpanded = ref(true)
 const isMinimized = ref(false)
@@ -313,11 +316,11 @@ const perdasNaoTecnicas = ref({
 
 function getCriticidade(): string {
   if (indicadorPrincipal.value.valor > indicadorPrincipal.value.limite) {
-    return 'Acima do limite'
+    return t('floating.crit_above')
   } else if (indicadorPrincipal.value.valor < indicadorPrincipal.value.limite * 0.8) {
-    return 'Abaixo do limite'
+    return t('floating.crit_below')
   } else {
-    return 'Próximo do limite'
+    return t('floating.crit_near')
   }
 }
 
@@ -346,9 +349,9 @@ function initChart() {
   chart = new Chart(canvas, {
     type: 'bar',
     data: {
-      labels: ['TAM', 'SAM'],
+      labels: [t('report.tam'), t('report.sam')],
       datasets: [{
-        label: 'Métricas',
+        label: t('floating.metricsLabel'),
         data: [props.tam, props.sam],
         backgroundColor: ['#1976d2', '#43a047'],
         borderColor: ['#1565c0', '#2e7d32'],
@@ -490,7 +493,7 @@ onUnmounted(() => {
 
 .reopen-btn {
   position: fixed;
-  left: 215px;
+  left: 270px;
   top: 20px;
   width: 40px;
   height: 40px;

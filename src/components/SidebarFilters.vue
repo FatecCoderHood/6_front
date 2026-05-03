@@ -6,20 +6,20 @@
     <!-- Sidebar de filtros -->
     <div :class="['sidebar-filters', { 'sidebar-filters-open': showSidebar }]">
       <button class="close-btn" @click="closeSidebar">×</button>
-      <h2>Filtros do Mapa</h2>
+      <h2>{{ t('filters.title') }}</h2>
       
       <!-- Filtro de Período (Ano e Mês) -->
       <div class="filtro-grupo">
-        <label class="group-label">Período de Referência</label>
+        <label class="group-label">{{ t('filters.period') }}</label>
         <div class="periodo-row">
           <div class="periodo-item">
-            <label class="periodo-label">Ano</label>
+            <label class="periodo-label">{{ t('filters.year') }}</label>
             <select v-model="selectedAno" class="periodo-select">
               <option v-for="ano in anos" :key="ano" :value="ano">{{ ano }}</option>
             </select>
           </div>
           <div class="periodo-item">
-            <label class="periodo-label">Mês</label>
+            <label class="periodo-label">{{ t('filters.month') }}</label>
             <select v-model="selectedMes" class="periodo-select">
               <option v-for="mes in meses" :key="mes.valor" :value="mes.valor">{{ mes.nome }}</option>
             </select>
@@ -29,7 +29,7 @@
       
       <!-- Filtro de Distribuidoras -->
       <div class="filtro-grupo">
-        <label class="group-label">Distribuidoras</label>
+        <label class="group-label">{{ t('filters.distribuidoras') }}</label>
         <div class="custom-dropdown" :class="{ open: dropdownOpen === 'distribuidoras' }">
           <div class="dropdown-header" @click.stop="toggleDropdown('distribuidoras')">
             <span>{{ getDistribuidorasLabel() }}</span>
@@ -38,7 +38,7 @@
           <div class="dropdown-content" v-if="dropdownOpen === 'distribuidoras'">
             <label class="checkbox-option">
               <input type="checkbox" :checked="isAllDistribuidorasSelected" @change="selectAllDistribuidoras" />
-              <span>Todas</span>
+              <span>{{ t('filters.all') }}</span>
             </label>
             <label v-for="dist in distribuidoras" :key="dist.id" class="checkbox-option">
               <input type="checkbox" :value="dist.id" v-model="selectedDistribuidoras" />
@@ -50,7 +50,7 @@
       
       <!-- Indicadores DEC -->
       <div class="filtro-grupo">
-        <label class="group-label">Indicadores DEC</label>
+        <label class="group-label">{{ t('filters.indicators_dec') }}</label>
         <div class="custom-dropdown" :class="{ open: dropdownOpen === 'dec' }">
           <div class="dropdown-header" @click.stop="toggleDropdown('dec')">
             <span>{{ getIndicadoresDECLabel() }}</span>
@@ -75,7 +75,7 @@
       
       <!-- Indicadores FEC -->
       <div class="filtro-grupo">
-        <label class="group-label">Indicadores FEC</label>
+        <label class="group-label">{{ t('filters.indicators_fec') }}</label>
         <div class="custom-dropdown" :class="{ open: dropdownOpen === 'fec' }">
           <div class="dropdown-header" @click.stop="toggleDropdown('fec')">
             <span>{{ getIndicadoresFECLabel() }}</span>
@@ -102,28 +102,29 @@
       <div class="filtro-grupo">
         <label class="checkbox-item">
           <input type="checkbox" v-model="showHeatmap" />
-          <span>Modo Heatmap (intensidade por desvio)</span>
+          <span>{{ t('filters.heatmap') }}</span>
         </label>
         <label class="checkbox-item">
           <input type="checkbox" v-model="mostrarTorres" />
-          <span>Mostrar localizações das distribuidoras</span>
+          <span>{{ t('filters.show_towers') }}</span>
         </label>
       </div>
       
       <!-- Botões -->
-      <button class="btn-atualizar" @click="emitirFiltros">Aplicar Filtros</button>
-      <button class="btn-limpar" @click="limparFiltros">Limpar Filtros</button>
+      <button class="btn-atualizar" @click="emitirFiltros">{{ t('filters.apply') }}</button>
+      <button class="btn-limpar" @click="limparFiltros">{{ t('filters.clear') }}</button>
     </div>
     
     <!-- Botão para abrir a sidebar -->
     <button v-if="!showSidebar" class="open-filters-btn" @click="openSidebar">
-      <span>☰</span> Filtros
+      <span>☰</span> {{ t('filters.title') }}
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { distribuidoras } from '../service/mockData'
 
 const showSidebar = ref(false)
@@ -131,20 +132,8 @@ const dropdownOpen = ref<string | null>(null)
 
 // Filtros de período
 const anos = ref([2022, 2023, 2024, 2025])
-const meses = ref([
-  { valor: 1, nome: 'Janeiro' },
-  { valor: 2, nome: 'Fevereiro' },
-  { valor: 3, nome: 'Março' },
-  { valor: 4, nome: 'Abril' },
-  { valor: 5, nome: 'Maio' },
-  { valor: 6, nome: 'Junho' },
-  { valor: 7, nome: 'Julho' },
-  { valor: 8, nome: 'Agosto' },
-  { valor: 9, nome: 'Setembro' },
-  { valor: 10, nome: 'Outubro' },
-  { valor: 11, nome: 'Novembro' },
-  { valor: 12, nome: 'Dezembro' }
-])
+const { t } = useI18n()
+const meses = computed(() => t('filters.months') as any)
 const selectedAno = ref(2024)
 const selectedMes = ref(6) // Junho
 
@@ -183,8 +172,8 @@ function toggleDropdown(dropdown: string) {
 
 // Funções de Label
 function getDistribuidorasLabel(): string {
-  if (selectedDistribuidoras.value.length === 0) return 'Todas as distribuidoras'
-  if (selectedDistribuidoras.value.length === distribuidoras.length) return 'Todas'
+  if (selectedDistribuidoras.value.length === 0) return t('filters.all_distrib')
+  if (selectedDistribuidoras.value.length === distribuidoras.length) return t('filters.all')
   if (selectedDistribuidoras.value.length === 1) {
     const dist = distribuidoras.find(d => d.id === selectedDistribuidoras.value[0])
     return dist?.nome || '1 selecionada'
@@ -193,14 +182,14 @@ function getDistribuidorasLabel(): string {
 }
 
 function getIndicadoresDECLabel(): string {
-  if (selectedIndicadoresDEC.value.length === 0) return 'Nenhum indicador DEC'
-  if (selectedIndicadoresDEC.value.length === 3) return 'Todos DEC'
+  if (selectedIndicadoresDEC.value.length === 0) return t('filters.none_dec')
+  if (selectedIndicadoresDEC.value.length === 3) return t('filters.all_dec')
   return `${selectedIndicadoresDEC.value.length} selecionado(s)`
 }
 
 function getIndicadoresFECLabel(): string {
-  if (selectedIndicadoresFEC.value.length === 0) return 'Nenhum indicador FEC'
-  if (selectedIndicadoresFEC.value.length === 3) return 'Todos FEC'
+  if (selectedIndicadoresFEC.value.length === 0) return t('filters.none_fec')
+  if (selectedIndicadoresFEC.value.length === 3) return t('filters.all_fec')
   return `${selectedIndicadoresFEC.value.length} selecionado(s)`
 }
 

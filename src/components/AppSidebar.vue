@@ -2,41 +2,68 @@
   <aside :class="['app-sidebar', { open: open }]" @mouseleave="handleMouseLeave">
     <button class="collapse-btn" @click="toggle">{{ open ? '×' : '☰' }}</button>
     <nav class="nav">
-      <router-link to="/" class="nav-item" @click="closeSidebar">
-        <span class="icon" v-html="svg(mdiHome)"></span>
-        <span v-if="open">Home</span>
-      </router-link>
-      <router-link to="/mapa" class="nav-item" @click="closeSidebar">
-        <span class="icon" v-html="svg(mdiMap)"></span>
-        <span v-if="open">Mapa</span>
-      </router-link>
-      <router-link to="/dashboard" class="nav-item" @click="closeSidebar">
-        <span class="icon" v-html="svg(mdiViewDashboard)"></span>
-        <span v-if="open">Dashboard</span>
-      </router-link>
-      <router-link to="/usuarios" class="nav-item" @click="closeSidebar">
-        <span class="icon" v-html="svg(mdiAccount)"></span>
-        <span v-if="open">Usuários</span>
-      </router-link>
-      <router-link to="/logs" class="nav-item" @click="closeSidebar">
-        <span class="icon" v-html="svg(mdiHistory)"></span>
-        <span v-if="open">Logs</span>
-      </router-link>
-      <router-link to="/reserva" class="nav-item" @click="closeSidebar">
-        <span class="icon" v-html="svg(mdiCalendar)"></span>
-        <span v-if="open">Reserva</span>
-      </router-link>
-    </nav>
+          <router-link to="/" class="nav-item" @click="closeSidebar">
+            <span class="icon" v-html="svg(mdiHome)"></span>
+            <span v-if="open">{{ t('sidebar.home') }}</span>
+          </router-link>
+          <router-link to="/mapa" class="nav-item" @click="closeSidebar">
+            <span class="icon" v-html="svg(mdiMap)"></span>
+            <span v-if="open">{{ t('sidebar.map') }}</span>
+          </router-link>
+          <router-link to="/dashboard" class="nav-item" @click="closeSidebar">
+            <span class="icon" v-html="svg(mdiViewDashboard)"></span>
+            <span v-if="open">{{ t('sidebar.dashboard') }}</span>
+          </router-link>
+          <router-link to="/usuarios" class="nav-item" @click="closeSidebar">
+            <span class="icon" v-html="svg(mdiAccount)"></span>
+            <span v-if="open">{{ t('sidebar.users') }}</span>
+          </router-link>
+          <router-link to="/logs" class="nav-item" @click="closeSidebar">
+            <span class="icon" v-html="svg(mdiHistory)"></span>
+            <span v-if="open">{{ t('sidebar.logs') }}</span>
+          </router-link>
+          <router-link to="/reserva" class="nav-item" @click="closeSidebar">
+            <span class="icon" v-html="svg(mdiCalendar)"></span>
+            <span v-if="open">{{ t('sidebar.reserve') }}</span>
+          </router-link>
+
+          <div class="language-switch" :class="{ open: open }">
+            <div class="lang-left">
+              <span v-if="open" class="lang-label">{{ t('sidebar.language') }}</span>
+            </div>
+            <div class="lang-right">
+              <div class="switch" @click="toggleLang" role="button" :aria-pressed="isEnglishComputed">
+                <div class="slider" :class="{ on: isEnglishComputed }"></div>
+              </div>
+              <span v-if="open" class="lang-name">{{ localLocale === 'pt' ? t('sidebar.portuguese') : t('sidebar.english') }}</span>
+            </div>
+          </div>
+        </nav>
   </aside>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { mdiHome, mdiMap, mdiViewDashboard, mdiAccount, mdiHistory, mdiCalendar } from '@mdi/js'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits(['toggle'])
 
 let timeoutId: any = null
+
+const { t, locale } = useI18n()
+
+const localLocale = computed(() => locale.value)
+
+const isEnglishComputed = computed({
+  get: () => locale.value === 'en',
+  set: (v: boolean) => { locale.value = v ? 'en' : 'pt' }
+})
+
+function toggleLang() {
+  locale.value = locale.value === 'pt' ? 'en' : 'pt'
+}
 
 function toggle() { 
   emit('toggle') 
@@ -179,4 +206,27 @@ function svg(path: string, size = 20) {
 .app-sidebar .nav-item span:not(.icon) {
   transition: opacity 0.2s ease;
 }
+
+.language-switch {
+  margin-top: 12px;
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 8px);
+  position: relative;
+  padding: 8px 4px;
+}
+
+.language-switch .lang-left { flex: 1 }
+.language-switch .lang-right { display: flex; gap: 10px; align-items: center }
+.language-switch .lang-label { font-size: 0.85rem; color: rgba(255,255,255,0.9); font-weight:600 }
+.language-switch .lang-name { font-size: 0.85rem; color: rgba(255,255,255,0.8) }
+
+.switch { width: 44px; height: 24px; background: rgba(255,255,255,0.12); border-radius: 999px; display:flex; align-items:center; padding:3px; cursor:pointer }
+.slider { width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: transform 0.2s }
+.slider.on { transform: translateX(20px); background: #1976d2 }
+
+.language-switch:not(.open) { justify-content: center }
+.language-switch:not(.open) .lang-left, .language-switch:not(.open) .lang-name { display: none }
 </style>

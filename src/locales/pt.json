@@ -1,0 +1,52 @@
+{
+  "sidebar": {
+    "home": "Início",
+    "map": "Mapa",
+    "dashboard": "Dashboard",
+    "users": "Usuários",
+    "logs": "Logs",
+    "reserve": "Reserva",
+    "language": "Idioma",
+    "portuguese": "Português",
+    "english": "English"
+  },
+  "filters": {
+    "title": "Filtros do Mapa",
+    "period": "Período de Referência",
+    "year": "Ano",
+    "month": "Mês",
+    "distribuidoras": "Distribuidoras",
+    "all": "Todas",
+    "all_distrib": "Todas as distribuidoras",
+    "indicators_dec": "Indicadores DEC",
+    "indicators_fec": "Indicadores FEC",
+    "none_dec": "Nenhum indicador DEC",
+    "all_dec": "Todos DEC",
+    "none_fec": "Nenhum indicador FEC",
+    "all_fec": "Todos FEC",
+    "heatmap": "Modo Heatmap (intensidade por desvio)",
+    "show_towers": "Mostrar localizações das distribuidoras",
+    "apply": "Aplicar Filtros",
+    "clear": "Limpar Filtros",
+    "months": [
+      { "valor": 1, "nome": "Janeiro" },
+      { "valor": 2, "nome": "Fevereiro" },
+      { "valor": 3, "nome": "Março" },
+      { "valor": 4, "nome": "Abril" },
+      { "valor": 5, "nome": "Maio" },
+      { "valor": 6, "nome": "Junho" },
+      { "valor": 7, "nome": "Julho" },
+      { "valor": 8, "nome": "Agosto" },
+      { "valor": 9, "nome": "Setembro" },
+      { "valor": 10, "nome": "Outubro" },
+      { "valor": 11, "nome": "Novembro" },
+      { "valor": 12, "nome": "Dezembro" }
+    ]
+  },
+  "map": {
+    "line": "Linha de Energia",
+    "tower": "Torre",
+    "transmission_tower": "Torre de Transmissão",
+    "drawError": "Desenho inválido!"
+  }
+}

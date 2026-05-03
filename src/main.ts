@@ -4,9 +4,11 @@ import App from './App.vue'
 import router from './routes'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
+import i18n from './i18n'
 
 const app = createApp(App)
 app.use(router)
+app.use(i18n)
 app.mount('#app')
 
 // Configurar título dinâmico baseado na rota

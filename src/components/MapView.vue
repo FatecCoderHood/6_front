@@ -4,6 +4,7 @@
 
 <script setup lang="ts">
 import { onMounted, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
@@ -19,6 +20,8 @@ let drawnItems: L.FeatureGroup
 let drawControl: any
 let linesLayer: L.LayerGroup
 let towersLayer: L.LayerGroup
+
+const { t } = useI18n()
 
 // Função para verificar se um ponto está dentro do polígono
 function isPointInPolygon(point: [number, number], polygon: L.LatLng[][]): boolean {
@@ -202,7 +205,7 @@ function renderizarLinhas() {
       opacity: 0.9
     }).addTo(linesLayer)
     
-    let popupContent = `<b>${linha.name || distrib?.nome || 'Linha de Energia'}</b><br><hr>`
+    let popupContent = `<b>${linha.name || distrib?.nome || t('map.line')}</b><br><hr>`
     popupContent += `<b>DEC:</b> ${linha.dec_realizado.toFixed(2)} (limite: ${linha.dec_limite.toFixed(2)})<br>`
     popupContent += `<b>Desvio DEC:</b> ${linha.desvio_dec >= 0 ? '+' : ''}${linha.desvio_dec.toFixed(1)}%<br>`
     popupContent += `<b>FEC:</b> ${linha.fec_realizado.toFixed(2)} (limite: ${linha.fec_limite.toFixed(2)})<br>`
@@ -246,8 +249,8 @@ function renderizarTorres() {
     L.marker([midPoint[1], midPoint[0]], { icon: torreIcon })
       .addTo(towersLayer)
       .bindPopup(`
-        <b>${linha.name || distrib?.nome || 'Torre'}</b><br>
-        Torre de Transmissão<br>
+        <b>${linha.name || distrib?.nome || t('map.tower')}</b><br>
+        ${t('map.transmission_tower')}<br>
         DEC: ${linha.dec_realizado.toFixed(2)} | FEC: ${linha.fec_realizado.toFixed(2)}
       `)
   })
@@ -287,7 +290,7 @@ function initMap() {
       polygon: {
         shapeOptions: { color: '#ff4444', weight: 3, opacity: 0.7, fillOpacity: 0.2 },
         allowIntersection: false,
-        drawError: { color: '#ff4444', message: 'Desenho inválido!' }
+        drawError: { color: '#ff4444', message: t('map.drawError') }
       },
       rectangle: false,
       circle: false,

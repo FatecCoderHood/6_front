@@ -1,0 +1,52 @@
+{
+  "sidebar": {
+    "home": "Home",
+    "map": "Map",
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "logs": "Logs",
+    "reserve": "Reserve",
+    "language": "Language",
+    "portuguese": "Portuguese",
+    "english": "English"
+  },
+  "filters": {
+    "title": "Map Filters",
+    "period": "Reference Period",
+    "year": "Year",
+    "month": "Month",
+    "distribuidoras": "Distributors",
+    "all": "All",
+    "all_distrib": "All distributors",
+    "indicators_dec": "DEC Indicators",
+    "indicators_fec": "FEC Indicators",
+    "none_dec": "No DEC indicator",
+    "all_dec": "All DEC",
+    "none_fec": "No FEC indicator",
+    "all_fec": "All FEC",
+    "heatmap": "Heatmap Mode (intensity by deviation)",
+    "show_towers": "Show distributors locations",
+    "apply": "Apply Filters",
+    "clear": "Clear Filters",
+    "months": [
+      { "valor": 1, "nome": "January" },
+      { "valor": 2, "nome": "February" },
+      { "valor": 3, "nome": "March" },
+      { "valor": 4, "nome": "April" },
+      { "valor": 5, "nome": "May" },
+      { "valor": 6, "nome": "June" },
+      { "valor": 7, "nome": "July" },
+      { "valor": 8, "nome": "August" },
+      { "valor": 9, "nome": "September" },
+      { "valor": 10, "nome": "October" },
+      { "valor": 11, "nome": "November" },
+      { "valor": 12, "nome": "December" }
+    ]
+  },
+  "map": {
+    "line": "Power Line",
+    "tower": "Tower",
+    "transmission_tower": "Transmission Tower",
+    "drawError": "Invalid drawing!"
+  }
+}

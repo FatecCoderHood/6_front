@@ -49,4 +49,42 @@
     "transmission_tower": "Torre de Transmissão",
     "drawError": "Desenho inválido!"
   }
+  ,
+  "floating": {
+    "headerTitle": "Detalhe do recorte selecionado",
+    "expand": "Expandir",
+    "minimize": "Minimizar",
+    "generatePdf": "Gerar Relatório PDF",
+    "close": "Fechar",
+    "criticidade": "CLASSIFICAÇÃO DE CRITICIDADE",
+    "contextTitle": "CONTEXTO OPERACIONAL",
+    "complementaryTitle": "LEITURAS COMPLEMENTARES",
+    "reopen": "Reabrir métricas",
+    "limitLabel": "Limite regulatório",
+    "reference": "Referência para leitura de criticidade",
+    "labelDistributor": "Distribuidora:",
+    "labelState": "Estado:",
+    "labelSubstation": "Subestação:",
+    "labelPeriod": "Período de referência:",
+    "metricsLabel": "Métricas",
+    "crit_above": "Acima do limite",
+    "crit_below": "Abaixo do limite",
+    "crit_near": "Próximo do limite"
+  },
+  "report": {
+    "title": "Relatório de Métricas - Conjunto Elétrico",
+    "generatedOn": "Gerado em:",
+    "limit": "Limite",
+    "criticidade": "Classificação de Criticidade",
+    "indicator": "Indicador Principal",
+    "context": "Contexto Operacional",
+    "mainIndicators": "Indicadores Principais",
+    "metrics": "Métricas TAM e SAM",
+    "complementary": "Leituras Complementares",
+    "footer": "Relatório gerado automaticamente pelo sistema de monitoramento",
+    "tam": "TAM",
+    "sam": "SAM",
+    "lossTechnical": "PERDAS TÉCNICAS",
+    "lossNonTechnical": "PERDAS NÃO TÉCNICAS"
+  }
 }

@@ -2,13 +2,13 @@
   <div class="report-pdf-container" ref="reportContent">
     <!-- Cabeçalho do relatório -->
     <div class="report-header">
-      <h1>Relatório de Métricas - Conjunto Elétrico</h1>
-      <p>Gerado em: {{ dataGeracao }}</p>
+      <h1>{{ t('report.title') }}</h1>
+      <p>{{ t('report.generatedOn') }} {{ dataGeracao }}</p>
     </div>
 
     <!-- Classificação de criticidade -->
     <div class="report-section">
-      <h2>Classificação de Criticidade</h2>
+      <h2>{{ t('report.criticidade') }}</h2>
       <div class="criticidade-box" :class="getCriticidadeClass()">
         <span class="criticidade-label">{{ getCriticidade() }}</span>
       </div>
@@ -16,19 +16,19 @@
 
     <!-- Indicador principal -->
     <div class="report-section">
-      <h2>Indicador Principal</h2>
+      <h2>{{ t('report.indicator') }}</h2>
       <div class="indicador-principal">
         <div class="valor-grande">{{ indicadorPrincipal.valor.toFixed(2) }}</div>
         <div class="indicador-info">
           <span>{{ indicadorPrincipal.nome }}</span>
-          <span>Limite regulatório: {{ indicadorPrincipal.limite.toFixed(2) }}</span>
+          <span>{{ t('report.indicator') }} - {{ indicadorPrincipal.limite.toFixed(2) }}</span>
         </div>
       </div>
     </div>
 
     <!-- Contexto operacional -->
     <div class="report-section">
-      <h2>Contexto Operacional</h2>
+      <h2>{{ t('report.context') }}</h2>
       <div class="contexto-grid">
         <div class="contexto-item">
           <span class="label">Distribuidora:</span>
@@ -51,31 +51,31 @@
 
     <!-- Indicadores principais DEC/FEC -->
     <div class="report-section">
-      <h2>Indicadores Principais</h2>
+      <h2>{{ t('report.mainIndicators') }}</h2>
       <div class="indicadores-grid">
         <div class="indicador-card">
           <div class="card-header">DEC</div>
           <div class="card-valor">{{ dec.valor.toFixed(2) }}</div>
-          <div class="card-limite">Limite {{ dec.limite.toFixed(2) }}</div>
+          <div class="card-limite">{{ t('report.limit') }} {{ dec.limite.toFixed(2) }}</div>
         </div>
         <div class="indicador-card">
           <div class="card-header">FEC</div>
           <div class="card-valor">{{ fec.valor.toFixed(2) }}</div>
-          <div class="card-limite">Limite {{ fec.limite.toFixed(2) }}</div>
+          <div class="card-limite">{{ t('report.limit') }} {{ fec.limite.toFixed(2) }}</div>
         </div>
       </div>
     </div>
 
     <!-- Métricas TAM/SAM com gráfico -->
     <div class="report-section">
-      <h2>Métricas TAM e SAM</h2>
+      <h2>{{ t('report.metrics') }}</h2>
       <div class="metricas-grid">
         <div class="metrica-card">
-          <div class="metrica-nome">TAM</div>
+          <div class="metrica-nome">{{ t('report.tam') }}</div>
           <div class="metrica-valor">{{ tam.toFixed(2) }}</div>
         </div>
         <div class="metrica-card">
-          <div class="metrica-nome">SAM</div>
+          <div class="metrica-nome">{{ t('report.sam') }}</div>
           <div class="metrica-valor">{{ sam.toFixed(2) }}</div>
         </div>
       </div>
@@ -84,30 +84,31 @@
 
     <!-- Leituras complementares -->
     <div class="report-section">
-      <h2>Leituras Complementares</h2>
+      <h2>{{ t('report.complementary') }}</h2>
       <div class="complementares-grid">
         <div class="complementar-card">
-          <div class="card-header">PERDAS TÉCNICAS</div>
+          <div class="card-header">{{ t('report.lossTechnical') }}</div>
           <div class="card-valor">{{ perdasTecnicas.valor.toFixed(2) }}%</div>
-          <div class="card-limite">Limite {{ perdasTecnicas.limite.toFixed(2) }}%</div>
+          <div class="card-limite">{{ t('report.limit') }} {{ perdasTecnicas.limite.toFixed(2) }}%</div>
         </div>
         <div class="complementar-card">
-          <div class="card-header">PERDAS NÃO TÉCNICAS</div>
+          <div class="card-header">{{ t('report.lossNonTechnical') }}</div>
           <div class="card-valor">{{ perdasNaoTecnicas.valor.toFixed(2) }}%</div>
-          <div class="card-limite">Limite {{ perdasNaoTecnicas.limite.toFixed(2) }}%</div>
+          <div class="card-limite">{{ t('report.limit') }} {{ perdasNaoTecnicas.limite.toFixed(2) }}%</div>
         </div>
       </div>
     </div>
 
     <!-- Rodapé -->
     <div class="report-footer">
-      <p>Relatório gerado automaticamente pelo sistema de monitoramento</p>
+      <p>{{ t('report.footer') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -123,7 +124,12 @@ const props = defineProps<{
 
 const reportContent = ref<HTMLElement | null>(null)
 let chart: any = null
-const dataGeracao = ref(new Date().toLocaleString('pt-BR'))
+const { t, locale } = useI18n()
+const dataGeracao = ref(new Date().toLocaleString(locale.value === 'en' ? 'en-US' : 'pt-BR'))
+
+watch(() => locale.value, (nv) => {
+  dataGeracao.value = new Date().toLocaleString(nv === 'en' ? 'en-US' : 'pt-BR')
+})
 
 // Dados
 const indicadorPrincipal = ref({
@@ -161,11 +167,11 @@ const perdasNaoTecnicas = ref({
 
 function getCriticidade(): string {
   if (indicadorPrincipal.value.valor > indicadorPrincipal.value.limite) {
-    return 'Acima do limite'
+    return t('floating.crit_above')
   } else if (indicadorPrincipal.value.valor < indicadorPrincipal.value.limite * 0.8) {
-    return 'Abaixo do limite'
+    return t('floating.crit_below')
   } else {
-    return 'Próximo do limite'
+    return t('floating.crit_near')
   }
 }
 
@@ -194,9 +200,9 @@ async function initChart() {
   chart = new Chart(canvas, {
     type: 'bar',
     data: {
-      labels: ['TAM', 'SAM'],
+      labels: [t('report.tam'), t('report.sam')],
       datasets: [{
-        label: 'Métricas',
+        label: t('report.metrics'),
         data: [props.tam, props.sam],
         backgroundColor: ['#1976d2', '#43a047'],
         borderColor: ['#1565c0', '#2e7d32'],
@@ -261,7 +267,8 @@ async function generatePDF(): Promise<void> {
       remainingHeight -= pageHeight
     }
     
-    pdf.save(`relatorio_metricas_${new Date().getTime()}.pdf`)
+    const filename = `report_${locale.value}_${new Date().getTime()}.pdf`
+    pdf.save(filename)
   } catch (error) {
     console.error('Erro ao gerar PDF:', error)
   }

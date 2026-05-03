@@ -279,6 +279,7 @@ function initMap() {
   drawnItems = new L.FeatureGroup()
   map.addLayer(drawnItems)
   
+  // Configuração do Draw - APENAS POLÍGONO (retângulo removido)
   drawControl = new (L.Control as any).Draw({
     position: 'topright',
     edit: { featureGroup: drawnItems },
@@ -288,9 +289,7 @@ function initMap() {
         allowIntersection: false,
         drawError: { color: '#ff4444', message: 'Desenho inválido!' }
       },
-      rectangle: {
-        shapeOptions: { color: '#ff4444', weight: 3, opacity: 0.7, fillOpacity: 0.2 }
-      },
+      rectangle: false,
       circle: false,
       circlemarker: false,
       marker: false,

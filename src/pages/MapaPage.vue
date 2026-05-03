@@ -3,20 +3,17 @@
     <SidebarFilters @aplicar-filtros="aplicarFiltros" />
     <MapView
       :filtros="filtros"
-      :tam="tam"
-      :sam="sam"
       @update-metricas="updateMetricas"
     />
     
-    <!-- Componente flutuante expansível -->
     <FloatingMetrics
-      v-if="tam !== null && sam !== null"
-      :tam="tam"
-      :sam="sam"
-      :dec="dec"
-      :fec="fec"
-      :decLimite="decLimite"
-      :fecLimite="fecLimite"
+      v-if="metricas.tam !== null && metricas.sam !== null"
+      :tam="metricas.tam"
+      :sam="metricas.sam"
+      :dec="metricas.dec"
+      :fec="metricas.fec"
+      :decLimite="metricas.decLimite"
+      :fecLimite="metricas.fecLimite"
       @close="fecharMetricas"
     />
   </div>
@@ -32,41 +29,56 @@ const filtros = ref({
   distribuidoras: [],
   indicadoresDEC: {
     DEC: true,
-    DEC_realizado: false,
+    DEC_realizado: true,
     DEC_limite: false,
     Desvio_DEC: false
   },
   indicadoresFEC: {
     FEC: true,
-    FEC_realizado: false,
+    FEC_realizado: true,
     FEC_limite: false,
     Desvio_FEC: false
   },
   heatmap: false,
-  mostrarTorres: true
+  mostrarTorres: true,
+  periodo: 'Junho/2024'
 })
 
-const tam = ref<number|null>(null)
-const sam = ref<number|null>(null)
-const dec = ref<number>(7.68)
-const fec = ref<number>(3.68)
-const decLimite = ref<number>(6.50)
-const fecLimite = ref<number>(3.20)
+const metricas = ref({
+  tam: null as number | null,
+  sam: null as number | null,
+  dec: 0,
+  fec: 0,
+  decLimite: 6.5,
+  fecLimite: 3.2
+})
 
 function aplicarFiltros(f: any) {
   filtros.value = f
-  tam.value = null
-  sam.value = null
+  metricas.value = {
+    tam: null,
+    sam: null,
+    dec: 0,
+    fec: 0,
+    decLimite: 6.5,
+    fecLimite: 3.2
+  }
 }
 
-function updateMetricas({ tam: t, sam: s }: { tam: number, sam: number }) {
-  tam.value = t
-  sam.value = s
+function updateMetricas(data: any) {
+  metricas.value = {
+    tam: data.tam,
+    sam: data.sam,
+    dec: data.dec,
+    fec: data.fec,
+    decLimite: data.decLimite,
+    fecLimite: data.fecLimite
+  }
 }
 
 function fecharMetricas() {
-  tam.value = null
-  sam.value = null
+  metricas.value.tam = null
+  metricas.value.sam = null
 }
 </script>
 

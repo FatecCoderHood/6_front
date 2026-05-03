@@ -7,7 +7,7 @@
     />
     
     <FloatingMetrics
-      v-if="metricas.tam !== null && metricas.sam !== null"
+      v-if="mostrarMetricas"
       :tam="metricas.tam"
       :sam="metricas.sam"
       :dec="metricas.dec"
@@ -44,9 +44,12 @@ const filtros = ref({
   periodo: 'Junho/2024'
 })
 
+const mostrarMetricas = ref(false)
+let timeoutId: any = null
+
 const metricas = ref({
-  tam: null as number | null,
-  sam: null as number | null,
+  tam: 0,
+  sam: 0,
   dec: 0,
   fec: 0,
   decLimite: 6.5,
@@ -55,9 +58,11 @@ const metricas = ref({
 
 function aplicarFiltros(f: any) {
   filtros.value = f
+  // Fecha o painel ao aplicar filtros
+  mostrarMetricas.value = false
   metricas.value = {
-    tam: null,
-    sam: null,
+    tam: 0,
+    sam: 0,
     dec: 0,
     fec: 0,
     decLimite: 6.5,
@@ -66,19 +71,32 @@ function aplicarFiltros(f: any) {
 }
 
 function updateMetricas(data: any) {
-  metricas.value = {
-    tam: data.tam,
-    sam: data.sam,
-    dec: data.dec,
-    fec: data.fec,
-    decLimite: data.decLimite,
-    fecLimite: data.fecLimite
-  }
+  console.log('MapaPage recebeu novas métricas:', data)
+  
+  // Primeiro, esconde o painel atual
+  mostrarMetricas.value = false
+  
+  // Pequeno delay para garantir que o componente foi destruído
+  if (timeoutId) clearTimeout(timeoutId)
+  
+  timeoutId = setTimeout(() => {
+    // Atualiza os dados
+    metricas.value = {
+      tam: data.tam,
+      sam: data.sam,
+      dec: data.dec,
+      fec: data.fec,
+      decLimite: data.decLimite,
+      fecLimite: data.fecLimite
+    }
+    // Mostra o painel com os novos dados
+    mostrarMetricas.value = true
+    timeoutId = null
+  }, 50)
 }
 
 function fecharMetricas() {
-  metricas.value.tam = null
-  metricas.value.sam = null
+  mostrarMetricas.value = false
 }
 </script>
 

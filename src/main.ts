@@ -1,4 +1,4 @@
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import './style.css'
 import App from './App.vue'
 import router from './routes'
@@ -12,22 +12,26 @@ app.use(i18n)
 app.mount('#app')
 
 // Configurar título dinâmico baseado na rota
-router.afterEach((to) => {
-  const baseTitle = 'Enersight'
-  const titles: Record<string, string> = {
-    'Home': 'Início',
-    'Mapa': 'Mapa de Redes Elétricas',
-    'Dashboard': 'Dashboard de Indicadores',
-    'Usuarios': 'Gestão de Usuários',
-    'Logs': 'Histórico de Logs',
-    'Reserva': 'Reserva de Salas'
-  }
-  
-  const pageTitle = to.name ? titles[to.name as string] : ''
-  
-  if (pageTitle) {
-    document.title = `${pageTitle} | ${baseTitle}`
+const baseTitle = 'Enersight'
+
+function updateDocumentTitle() {
+  const to = router.currentRoute.value
+  if (to && to.meta && to.meta.title) {
+    const translated = i18n.global.t(to.meta.title as string) as string
+    document.title = `${translated} | ${baseTitle}`
+  } else if (to && to.name) {
+    document.title = `${String(to.name)} | ${baseTitle}`
   } else {
     document.title = baseTitle
   }
+}
+
+// set title after each navigation
+router.afterEach(() => {
+  updateDocumentTitle()
+})
+
+// watch locale changes and update title when language toggles
+watch(() => i18n.global.locale.value, () => {
+  updateDocumentTitle()
 })

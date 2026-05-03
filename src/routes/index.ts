@@ -5,43 +5,44 @@ import DashboardPage from '../pages/DashboardPage.vue'
 import UsersPage from '../pages/UsersPage.vue'
 import LogsPage from '../pages/LogsPage.vue'
 import ReservaPage from '../pages/ReservaPage.vue'
+import i18n from '../i18n'
 
 const routes = [
   { 
     path: '/', 
     name: 'Home', 
     component: HomePage,
-    meta: { title: 'Início' }
+    meta: { title: 'sidebar.home' }
   },
   { 
     path: '/mapa', 
     name: 'Mapa', 
     component: MapaPage,
-    meta: { title: 'Mapa de Redes Elétricas' }
+    meta: { title: 'sidebar.map' }
   },
   { 
     path: '/dashboard', 
     name: 'Dashboard', 
     component: DashboardPage,
-    meta: { title: 'Dashboard de Indicadores' }
+    meta: { title: 'sidebar.dashboard' }
   },
   { 
     path: '/usuarios', 
     name: 'Usuarios', 
     component: UsersPage,
-    meta: { title: 'Gestão de Usuários' }
+    meta: { title: 'sidebar.users' }
   },
   { 
     path: '/logs', 
     name: 'Logs', 
     component: LogsPage,
-    meta: { title: 'Histórico de Logs' }
+    meta: { title: 'sidebar.logs' }
   },
   { 
     path: '/reserva', 
     name: 'Reserva', 
     component: ReservaPage,
-    meta: { title: 'Reserva de Salas' }
+    meta: { title: 'sidebar.reserve' }
   },
 ]
 
@@ -50,12 +51,14 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const baseTitle = 'Enersight'
   if (to.meta && to.meta.title) {
-    document.title = `${to.meta.title} | ${baseTitle}`
+    // meta.title is a translation key now
+    const translated = i18n.global.t(to.meta.title as string) as string
+    document.title = `${translated} | ${baseTitle}`
   } else if (to.name) {
-    document.title = `${to.name} | ${baseTitle}`
+    document.title = `${String(to.name)} | ${baseTitle}`
   } else {
     document.title = baseTitle
   }

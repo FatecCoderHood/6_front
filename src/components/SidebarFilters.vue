@@ -8,7 +8,7 @@
       <button class="close-btn" @click="closeSidebar">×</button>
       <h2>{{ t('filters.title') }}</h2>
       
-      <!-- Filtro de Período (Ano e Mês) -->
+      <!-- FILTRO DE PERÍODO (ANOS APENAS - MÊS COMENTADO) -->
       <div class="filtro-grupo">
         <label class="group-label">{{ t('filters.period') }}</label>
         <div class="periodo-row">
@@ -18,16 +18,18 @@
               <option v-for="ano in anos" :key="ano" :value="ano">{{ ano }}</option>
             </select>
           </div>
+          <!-- COMENTADO: Filtro de Mês
           <div class="periodo-item">
             <label class="periodo-label">{{ t('filters.month') }}</label>
             <select v-model="selectedMes" class="periodo-select">
               <option v-for="mes in meses" :key="mes.valor" :value="mes.valor">{{ mes.nome }}</option>
             </select>
           </div>
+          -->
         </div>
       </div>
       
-      <!-- Filtro de Distribuidoras -->
+      <!-- COMENTADO: Filtro de Distribuidoras
       <div class="filtro-grupo">
         <label class="group-label">{{ t('filters.distribuidoras') }}</label>
         <div class="custom-dropdown" :class="{ open: dropdownOpen === 'distribuidoras' }">
@@ -47,6 +49,7 @@
           </div>
         </div>
       </div>
+      -->
       
       <!-- Indicadores DEC -->
       <div class="filtro-grupo">
@@ -104,10 +107,12 @@
           <input type="checkbox" v-model="showHeatmap" />
           <span>{{ t('filters.heatmap') }}</span>
         </label>
+        <!-- COMENTADO: Mostrar localizações das distribuidoras
         <label class="checkbox-item">
           <input type="checkbox" v-model="mostrarTorres" />
           <span>{{ t('filters.show_towers') }}</span>
         </label>
+        -->
       </div>
       
       <!-- Botões -->
@@ -123,33 +128,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { distribuidoras } from '../service/mockData'
+// import { distribuidoras } from '../service/mockData' // COMENTADO
 
 const showSidebar = ref(false)
 const dropdownOpen = ref<string | null>(null)
 
-// Filtros de período
+// Filtros de período (apenas ano)
 const anos = ref([2022, 2023, 2024, 2025])
 const { t } = useI18n()
-const meses = computed(() => t('filters.months') as any)
-const selectedAno = ref(2024)
-const selectedMes = ref(6) // Junho
+const selectedAno = ref(2025)
+// const selectedMes = ref(6) // COMENTADO
 
 // Filtros
-const selectedDistribuidoras = ref<number[]>([])
+// const selectedDistribuidoras = ref<number[]>([]) // COMENTADO
 const selectedIndicadoresDEC = ref<string[]>(['DEC'])
 const selectedIndicadoresFEC = ref<string[]>(['FEC'])
 const showHeatmap = ref(false)
-const mostrarTorres = ref(true)
+// const mostrarTorres = ref(true) // COMENTADO
 
 const emit = defineEmits(['aplicar-filtros'])
 
-// Computed properties
-const isAllDistribuidorasSelected = computed(() => {
-  return selectedDistribuidoras.value.length === distribuidoras.length
-})
+// COMENTADO: Computed properties para distribuidoras
+// const isAllDistribuidorasSelected = computed(() => {
+//   return selectedDistribuidoras.value.length === distribuidoras.length
+// })
 
 // Funções da Sidebar
 function openSidebar() {
@@ -170,16 +174,16 @@ function toggleDropdown(dropdown: string) {
   }
 }
 
-// Funções de Label
-function getDistribuidorasLabel(): string {
-  if (selectedDistribuidoras.value.length === 0) return t('filters.all_distrib')
-  if (selectedDistribuidoras.value.length === distribuidoras.length) return t('filters.all')
-  if (selectedDistribuidoras.value.length === 1) {
-    const dist = distribuidoras.find(d => d.id === selectedDistribuidoras.value[0])
-    return dist?.nome || '1 selecionada'
-  }
-  return `${selectedDistribuidoras.value.length} selecionadas`
-}
+// COMENTADO: Funções de Label para distribuidoras
+// function getDistribuidorasLabel(): string {
+//   if (selectedDistribuidoras.value.length === 0) return t('filters.all_distrib')
+//   if (selectedDistribuidoras.value.length === distribuidoras.length) return t('filters.all')
+//   if (selectedDistribuidoras.value.length === 1) {
+//     const dist = distribuidoras.find(d => d.id === selectedDistribuidoras.value[0])
+//     return dist?.nome || '1 selecionada'
+//   }
+//   return `${selectedDistribuidoras.value.length} selecionadas`
+// }
 
 function getIndicadoresDECLabel(): string {
   if (selectedIndicadoresDEC.value.length === 0) return t('filters.none_dec')
@@ -193,21 +197,20 @@ function getIndicadoresFECLabel(): string {
   return `${selectedIndicadoresFEC.value.length} selecionado(s)`
 }
 
-// Funções de Seleção
-function selectAllDistribuidoras(event: Event) {
-  const checkbox = event.target as HTMLInputElement
-  if (checkbox.checked) {
-    selectedDistribuidoras.value = distribuidoras.map(d => d.id)
-  } else {
-    selectedDistribuidoras.value = []
-  }
-}
+// COMENTADO: Função de seleção de distribuidoras
+// function selectAllDistribuidoras(event: Event) {
+//   const checkbox = event.target as HTMLInputElement
+//   if (checkbox.checked) {
+//     selectedDistribuidoras.value = distribuidoras.map(d => d.id)
+//   } else {
+//     selectedDistribuidoras.value = []
+//   }
+// }
 
-// Função para formatar período
-function getPeriodoFormatado(): string {
-  const mes = meses.value.find(m => m.valor === selectedMes.value)
-  return `${mes?.nome}/${selectedAno.value}`
-}
+// COMENTADO: Função para formatar período com mês
+// function getPeriodoFormatado(): string {
+//   return `${selectedAno.value}`
+// }
 
 // Funções principais
 function emitirFiltros() {
@@ -227,25 +230,26 @@ function emitirFiltros() {
   
   emit('aplicar-filtros', {
     ano: selectedAno.value,
-    mes: selectedMes.value,
-    periodo: getPeriodoFormatado(),
-    distribuidoras: selectedDistribuidoras.value,
+    // mes: selectedMes.value, // COMENTADO
+    periodo: `${selectedAno.value}`,
+    // distribuidoras: selectedDistribuidoras.value, // COMENTADO
     indicadoresDEC,
     indicadoresFEC,
     heatmap: showHeatmap.value,
-    mostrarTorres: mostrarTorres.value
+    // mostrarTorres: mostrarTorres.value // COMENTADO
+    mostrarTorres: false // Desabilitado
   })
   closeSidebar()
 }
 
 function limparFiltros() {
-  selectedDistribuidoras.value = []
+  // selectedDistribuidoras.value = [] // COMENTADO
   selectedIndicadoresDEC.value = ['DEC']
   selectedIndicadoresFEC.value = ['FEC']
   showHeatmap.value = false
-  mostrarTorres.value = true
-  selectedAno.value = 2024
-  selectedMes.value = 6
+  // mostrarTorres.value = true // COMENTADO
+  selectedAno.value = 2025
+  // selectedMes.value = 6 // COMENTADO
 }
 </script>
 

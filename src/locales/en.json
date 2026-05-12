@@ -86,5 +86,21 @@
     "sam": "SAM",
     "lossTechnical": "TECHNICAL LOSSES",
     "lossNonTechnical": "NON-TECHNICAL LOSSES"
+  },
+  "legend": {
+    "title": "Criticality Classification",
+    "green": {
+      "title": "🟢 Green - Good availability",
+      "description": "Healthy network, no restrictions for new connections"
+    },
+    "orange": {
+      "title": "🟠 Orange - Attention required",
+      "description": "Network with some limitations, requires monitoring"
+    },
+    "red": {
+      "title": "🔴 Red - High criticality",
+      "description": "Saturated network, requires reinforcement"
+    },
+    "footer": "Based on Criticality Score (0–100%)"
   }
 }

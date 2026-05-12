@@ -86,5 +86,22 @@
     "sam": "SAM",
     "lossTechnical": "PERDAS TÉCNICAS",
     "lossNonTechnical": "PERDAS NÃO TÉCNICAS"
+  },
+  "legend": {
+    "title": "Classificação de Criticidade",
+    "green": {
+      "title": "🟢 Verde - Boa disponibilidade",
+      "description": "Rede saudável, sem restrições para novas conexões"
+    },
+    "orange": {
+      "title": "🟠 Laranja - Atenção necessária",
+      "description": "Rede com alguma limitação, requer monitoramento"
+    },
+    "red": {
+      "title": "🔴 Vermelho - Alta criticidade",
+      "description": "Rede saturada, necessidade de reforços"
+    },
+    "footer": "Baseado no Score de Criticidade (0-100%)"
   }
 }
+

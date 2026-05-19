@@ -1,3 +1,4 @@
+<!-- src/components/MapView.vue -->
 <template>
   <div id="map" style="height: 100vh; width: 100%; position: absolute; top: 0; left: 0;"></div>
   <Legend />
@@ -14,21 +15,23 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
 import 'leaflet-draw'
-import { updateLinhasEnergia, linhasEnergia } from '../service/data'
+import { useMapaData } from '../composables/useMapaData'
+import type { LinhaEnergia } from '../types/mapa.types'
 import Legend from './Legend.vue'
 
 const props = defineProps<{ filtros: any }>()
 const emit = defineEmits(['update-metricas'])
 
+const { linhas, isLoading, loadData } = useMapaData()
+
 let map: L.Map
 let drawnItems: L.FeatureGroup
 let drawControl: any
 let linesLayer: L.LayerGroup
-const isLoading = ref(false)
-const { t } = useI18n()
-
 let lastLoadedBounds: any = null
 let debounceTimeout: any = null
+
+const { t } = useI18n()
 const MAX_LINHAS = 76000
 
 function classificarCriticidade(score: number): string {
@@ -48,70 +51,18 @@ function getCorPorScore(score: number): string {
   return corMap[categoria]
 }
 
-// Função para calcular área aproximada do polígono
 function calcularAreaPoligono(polygonLayer: any): number {
   try {
     const bounds = polygonLayer.getBounds()
     if (bounds && bounds.getNorth && bounds.getSouth) {
       const latDiff = Math.abs(bounds.getNorth() - bounds.getSouth())
       const lngDiff = Math.abs(bounds.getEast() - bounds.getWest())
-      // Área aproximada em km² (1 grau ~ 111km)
       return (latDiff * 111) * (lngDiff * 111)
     }
   } catch(e) {
     console.warn('Erro ao calcular área:', e)
   }
   return 0
-}
-
-async function carregarDados() {
-  if (!map) return
-  
-  const bounds = map.getBounds()
-  const year = props.filtros.ano || 2025
-  
-  const buffer = 0.05
-  if (lastLoadedBounds) {
-    const sameBounds = 
-      Math.abs(lastLoadedBounds.minx - bounds.getWest()) < buffer &&
-      Math.abs(lastLoadedBounds.miny - bounds.getSouth()) < buffer &&
-      Math.abs(lastLoadedBounds.maxx - bounds.getEast()) < buffer &&
-      Math.abs(lastLoadedBounds.maxy - bounds.getNorth()) < buffer
-    
-    if (sameBounds) {
-      console.log('📦 Bounds similares, ignorando requisição')
-      return
-    }
-  }
-  
-  lastLoadedBounds = {
-    minx: bounds.getWest(),
-    miny: bounds.getSouth(),
-    maxx: bounds.getEast(),
-    maxy: bounds.getNorth()
-  }
-  
-  console.log('📡 Carregando dados da região visível...')
-  isLoading.value = true
-  
-  await updateLinhasEnergia(year, {
-    minx: bounds.getWest(),
-    miny: bounds.getSouth(),
-    maxx: bounds.getEast(),
-    maxy: bounds.getNorth()
-  })
-  
-  isLoading.value = false
-  console.log(`📊 Carregadas ${linhasEnergia.length} linhas na região`)
-  
-  renderizarLinhas()
-}
-
-function carregarDadosDebounced() {
-  if (debounceTimeout) clearTimeout(debounceTimeout)
-  debounceTimeout = setTimeout(() => {
-    carregarDados()
-  }, 300)
 }
 
 function isPointInPolygon(point: [number, number], polygon: L.LatLng[][]): boolean {
@@ -142,7 +93,6 @@ function lineIntersectsPolygon(lineCoords: [number, number][], polygon: L.LatLng
 function calculateRealMetricsFromPolygon(polygonLayer: any) {
   console.log('📐 Calculando métricas do polígono...')
   
-  // Verificar se há pontos no polígono
   if (!polygonLayer.getLatLngs || polygonLayer.getLatLngs().length === 0) {
     console.warn('Polígono sem pontos')
     return null
@@ -150,22 +100,22 @@ function calculateRealMetricsFromPolygon(polygonLayer: any) {
   
   const polygonLatLngs = polygonLayer.getLatLngs()
   
-  // Calcular área usando função manual (não usar getArea)
   let area = 0
   try {
     const bounds = polygonLayer.getBounds()
     if (bounds && typeof bounds.getNorth === 'function') {
       const latDiff = Math.abs(bounds.getNorth() - bounds.getSouth())
       const lngDiff = Math.abs(bounds.getEast() - bounds.getWest())
-      area = (latDiff * 111) * (lngDiff * 111) // km² aproximado
+      area = (latDiff * 111) * (lngDiff * 111)
     }
   } catch(e) {
     area = 0
   }
   
-  const linhasNoPoligono: typeof linhasEnergia = []
+  const linhasNoPoligono: LinhaEnergia[] = []
+  const linhasAtuais = linhas.value
   
-  for (const linha of linhasEnergia) {
+  for (const linha of linhasAtuais) {
     const lineLatLngs = linha.coordinates.map(coord => [coord[1], coord[0]]) as [number, number][]
     
     if (lineIntersectsPolygon(lineLatLngs, polygonLatLngs)) {
@@ -213,10 +163,11 @@ function renderizarLinhas() {
   if (linesLayer) linesLayer.clearLayers()
   else linesLayer = L.layerGroup().addTo(map)
   
-  const linhasParaRenderizar = linhasEnergia.slice(0, MAX_LINHAS)
+  const linhasAtuais = linhas.value
+  const linhasParaRenderizar = linhasAtuais.slice(0, MAX_LINHAS)
   
-  if (linhasEnergia.length > MAX_LINHAS) {
-    console.warn(`⚠️ ${linhasEnergia.length} linhas encontradas. Renderizando apenas ${MAX_LINHAS}.`)
+  if (linhasAtuais.length > MAX_LINHAS) {
+    console.warn(`⚠️ ${linhasAtuais.length} linhas encontradas. Renderizando apenas ${MAX_LINHAS}.`)
   }
   
   console.log(`🎨 Renderizando ${linhasParaRenderizar.length} linhas`)
@@ -247,6 +198,54 @@ function renderizarLinhas() {
     
     polyline.bindPopup(popupContent)
   })
+}
+
+async function carregarDados() {
+  if (!map) return
+  
+  const bounds = map.getBounds()
+  const year = props.filtros.ano || 2025
+  
+  const buffer = 0.05
+  if (lastLoadedBounds) {
+    const sameBounds = 
+      Math.abs(lastLoadedBounds.minx - bounds.getWest()) < buffer &&
+      Math.abs(lastLoadedBounds.miny - bounds.getSouth()) < buffer &&
+      Math.abs(lastLoadedBounds.maxx - bounds.getEast()) < buffer &&
+      Math.abs(lastLoadedBounds.maxy - bounds.getNorth()) < buffer
+    
+    if (sameBounds) {
+      console.log('📦 Bounds similares, ignorando requisição')
+      return
+    }
+  }
+  
+  lastLoadedBounds = {
+    minx: bounds.getWest(),
+    miny: bounds.getSouth(),
+    maxx: bounds.getEast(),
+    maxy: bounds.getNorth()
+  }
+  
+  console.log('📡 Carregando dados da região visível...')
+  
+  await loadData(year, {
+    minx: bounds.getWest(),
+    miny: bounds.getSouth(),
+    maxx: bounds.getEast(),
+    maxy: bounds.getNorth()
+  })
+  
+  console.log(`📊 Carregadas ${linhas.value.length} linhas na região`)
+  
+  renderizarLinhas()
+}
+
+function carregarDadosDebounced() {
+  if (debounceTimeout) clearTimeout(debounceTimeout)
+  debounceTimeout = setTimeout(() => {
+    carregarDados()
+  }, 300)
 }
 
 function initMap() {

@@ -1,4 +1,31 @@
 {
+  "home": {
+    "welcome": "Welcome to",
+    "title": "Enersigh",
+    "subtitle": "Intelligent Monitoring and Forecasting System for Energy Indicators",
+    "modules": {
+      "map": {
+        "title": "Geospatial Map",
+        "description": "View power lines and interactive indicators"
+      },
+      "forecast": {
+        "title": "Forecast Agent",
+        "description": "Intelligent predictions for DEC and FEC indicators"
+      },
+      "users": {
+        "title": "Users",
+        "description": "Manage system access and permissions"
+      },
+      "logs": {
+        "title": "System Logs",
+        "description": "Complete history of activities and events"
+      },
+      "profile": {
+        "title": "My Profile",
+        "description": "Manage your information and preferences"
+      }
+    }
+  },
   "sidebar": {
     "home": "Home",
     "map": "Map",
@@ -48,8 +75,7 @@
     "tower": "Tower",
     "transmission_tower": "Transmission Tower",
     "drawError": "Invalid drawing!"
-  }
-  ,
+  },
   "floating": {
     "headerTitle": "Selected area details",
     "expand": "Expand",

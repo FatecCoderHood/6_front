@@ -1,23 +1,21 @@
 <template>
-  <!-- Sidebar só aparece se NÃO estiver na rota de login -->
   <AppSidebar 
-    v-if="$route.path !== '/login'" 
+    v-if="$route.path !== '/login' && $route.path !== '/cadastro'" 
     :open="sidebarOpen" 
     @toggle="handleToggle" 
   />
   
-  <!-- Sensor só aparece se NÃO estiver na rota de login -->
   <div 
-    v-if="$route.path !== '/login'" 
+    v-if="$route.path !== '/login' && $route.path !== '/cadastro'" 
     class="sidebar-sensor" 
     @mouseenter="onSensorEnter" 
     @mouseleave="onSensorLeave"
   ></div>
   
   <div :class="['main-content', { 
-    'no-sidebar': $route.path === '/login',
-    'sidebar-open': sidebarOpen && $route.path !== '/login',
-    'sidebar-closed': !sidebarOpen && $route.path !== '/login'
+    'no-sidebar': $route.path === '/login' || $route.path === '/cadastro',
+    'sidebar-open': sidebarOpen && $route.path !== '/login' && $route.path !== '/cadastro',
+    'sidebar-closed': !sidebarOpen && $route.path !== '/login' && $route.path !== '/cadastro'
   }]">
     <router-view />
   </div>
@@ -40,9 +38,7 @@ function onSensorEnter() {
 }
 
 function onSensorLeave() {
-  // Se a sidebar estava fechada antes, podemos fechar novamente
-  // Mas isso depende da lógica que você quer
-  // Vou manter simples: não faz nada
+
 }
 </script>
 
@@ -76,7 +72,7 @@ body {
   margin-left: 98px;
 }
 
-/* Quando não tem sidebar (página de login) */
+/* Quando não tem sidebar (página de login ou cadastro) */
 .main-content.no-sidebar {
   margin-left: 0 !important;
 }

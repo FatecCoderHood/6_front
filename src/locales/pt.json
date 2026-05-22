@@ -35,7 +35,8 @@
     "reserve": "Reserva",
     "language": "Idioma",
     "portuguese": "Português",
-    "english": "English"
+    "english": "English",
+    "logout": "Sair"
   },
   "filters": {
     "title": "Filtros do Mapa",

@@ -1,4 +1,3 @@
-<!-- src/pages/HomePage.vue (com i18n) -->
 <template>
   <div class="home-page">
     <!-- Fundo animado -->
@@ -14,10 +13,11 @@
       <div class="header">
         <div class="logo">
           <img 
-            src="/src/assets/brand-logo-w-name_512.png" 
+            src="/src/assets/logo_512.png" 
             alt="Enersigh Logo" 
             class="logo-img"
             @error="handleImageError"
+            @click="handleLogoClick"
           />
         </div>
       </div>
@@ -124,13 +124,27 @@
         </router-link>
       </div>
     </div>
+
+    <!-- Modal para imagem -->
+    <div v-if="showModal" class="modal" @click.self="closeModal">
+      <div class="modal-content">
+        <span class="close" @click="closeModal">&times;</span>
+        <img src="/src/assets/filhoJuan.jpeg" alt="Imagem Modal" class="modal-image" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { ref } from 'vue'
 
 const { t } = useI18n()
+
+// Controle do clique para abrir modal
+const clickCount = ref(0)
+const showModal = ref(false)
+let clickTimeout: number | null = null
 
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
@@ -143,6 +157,36 @@ const handleImageError = (event: Event) => {
     fallback.innerHTML = '<span class="title">Enersigh</span><span class="subtitle">Sistema de Monitoramento</span>'
     parent.appendChild(fallback)
   }
+}
+
+const handleLogoClick = () => {
+  clickCount.value++
+  
+  // Resetar o timeout existente
+  if (clickTimeout) {
+    clearTimeout(clickTimeout)
+  }
+  
+  // Configurar timeout para resetar contagem após 1 segundo sem cliques
+  clickTimeout = setTimeout(() => {
+    clickCount.value = 0
+    clickTimeout = null
+  }, 1000)
+  
+  // Verificar se atingiu 10 cliques
+  if (clickCount.value >= 10) {
+    showModal.value = true
+    clickCount.value = 0 // Resetar contagem após abrir modal
+    
+    if (clickTimeout) {
+      clearTimeout(clickTimeout)
+      clickTimeout = null
+    }
+  }
+}
+
+const closeModal = () => {
+  showModal.value = false
 }
 </script>
 
@@ -221,7 +265,7 @@ const handleImageError = (event: Event) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 4rem;
+  margin-bottom: 0.1rem;
   animation: fadeInDown 0.8s ease;
 }
 
@@ -231,12 +275,14 @@ const handleImageError = (event: Event) => {
   justify-content: center;
 }
 
+/* Logo 3x maior */
 .logo-img {
-  height: 80px;
+  height: 200px; /* Era 80px, agora 3x maior */
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .logo-img:hover {
@@ -406,6 +452,74 @@ const handleImageError = (event: Event) => {
   color: #FFD700;
 }
 
+/* Estilos do Modal */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  animation: scaleIn 0.3s ease;
+}
+
+.modal-image {
+  width: 100%;
+  height: auto;
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
+}
+
+.close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  color: white;
+  font-size: 40px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  z-index: 1001;
+}
+
+.close:hover {
+  color: #FFD700;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   .content {
@@ -435,8 +549,21 @@ const handleImageError = (event: Event) => {
     font-size: 1.1rem;
   }
 
+  /* Ajuste da logo em telas menores - ainda 3x maior que o original */
   .logo-img {
-    height: 60px;
+    height: 180px; /* Em telas menores, ajustado proporcionalmente */
+  }
+  
+  .close {
+    top: -30px;
+    font-size: 30px;
+  }
+}
+
+/* Para telas muito pequenas */
+@media (max-width: 480px) {
+  .logo-img {
+    height: 150px;
   }
 }
 

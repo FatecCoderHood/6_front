@@ -35,7 +35,8 @@
     "reserve": "Reserve",
     "language": "Language",
     "portuguese": "Portuguese",
-    "english": "English"
+    "english": "English",
+    "logout": "Logout"
   },
   "filters": {
     "title": "Map Filters",

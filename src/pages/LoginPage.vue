@@ -78,12 +78,13 @@
             </button>
           </div>
 
+          <!-- ALTERAÇÃO AQUI: Troquei "Esqueceu a senha?" por link de cadastro -->
           <div class="options">
             <label class="checkbox-label">
               <input type="checkbox" v-model="rememberMe" />
               <span>Lembrar-me</span>
             </label>
-            <a href="#" class="forgot-password">Esqueceu a senha?</a>
+            <router-link to="/cadastro" class="register-link">Não tem conta? Cadastre-se</router-link>
           </div>
 
           <button type="submit" class="login-button" :disabled="loading">
@@ -94,7 +95,7 @@
 
         <!-- Rodapé -->
         <div class="login-footer">
-          <p>© 2024 Enersigh - Sistema de Monitoramento</p>
+          <p>© 2026 Enersigh - Sistema de Monitoramento</p>
         </div>
       </div>
     </div>
@@ -159,6 +160,7 @@ const getParticleStyle = (i: number) => {
 </script>
 
 <style scoped>
+/* TODO O SEU CSS PERMANECE EXATAMENTE IGUAL */
 * {
   margin: 0;
   padding: 0;
@@ -427,13 +429,15 @@ const getParticleStyle = (i: number) => {
   accent-color: #FFD700;
 }
 
-.forgot-password {
+/* ESTILO NOVO PARA O LINK DE CADASTRO */
+.register-link {
   color: #FFD700;
   text-decoration: none;
   transition: color 0.3s ease;
+  font-size: 0.85rem;
 }
 
-.forgot-password:hover {
+.register-link:hover {
   color: #FFA500;
   text-decoration: underline;
 }

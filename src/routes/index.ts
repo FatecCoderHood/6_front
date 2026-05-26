@@ -6,6 +6,7 @@ import UsersPage from '../pages/UsersPage.vue'
 import LogsPage from '../pages/LogsPage.vue'
 import ReservaPage from '../pages/ReservaPage.vue'
 import LoginPage from '../pages/LoginPage.vue'  
+import CadastroPage from '../pages/CadastroPage.vue'
 import i18n from '../i18n'
 
 const routes = [
@@ -14,6 +15,12 @@ const routes = [
     name: 'Login', 
     component: LoginPage,
     meta: { title: 'Login', requiresAuth: false }  
+  },
+  {
+  path: '/cadastro', 
+    name: 'Cadastro', 
+    component: CadastroPage,
+    meta: { title: 'Cadastro', requiresAuth: false }
   },
   { 
     path: '/', 

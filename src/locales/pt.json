@@ -1,4 +1,31 @@
 {
+  "home": {
+    "welcome": "Bem-vindo ao",
+    "title": "Enersigh",
+    "subtitle": "Sistema Inteligente de Monitoramento e Previsão de Indicadores de Energia",
+    "modules": {
+      "map": {
+        "title": "Mapa Geoespacial",
+        "description": "Visualize linhas de energia e indicadores interativos"
+      },
+      "forecast": {
+        "title": "Agente de Previsão",
+        "description": "Previsões inteligentes de indicadores DEC e FEC"
+      },
+      "users": {
+        "title": "Usuários",
+        "description": "Gerencie acesso e permissões do sistema"
+      },
+      "logs": {
+        "title": "Logs do Sistema",
+        "description": "Histórico completo de atividades e eventos"
+      },
+      "profile": {
+        "title": "Meu Perfil",
+        "description": "Gerencie suas informações e preferências"
+      }
+    }
+  },
   "sidebar": {
     "home": "Início",
     "map": "Mapa",
@@ -8,7 +35,8 @@
     "reserve": "Reserva",
     "language": "Idioma",
     "portuguese": "Português",
-    "english": "English"
+    "english": "English",
+    "logout": "Sair"
   },
   "filters": {
     "title": "Filtros do Mapa",
@@ -48,8 +76,7 @@
     "tower": "Torre",
     "transmission_tower": "Torre de Transmissão",
     "drawError": "Desenho inválido!"
-  }
-  ,
+  },
   "floating": {
     "headerTitle": "Detalhe do recorte selecionado",
     "expand": "Expandir",
@@ -104,4 +131,3 @@
     "footer": "Baseado no Score de Criticidade (0-100%)"
   }
 }
-

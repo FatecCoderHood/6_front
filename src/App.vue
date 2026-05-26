@@ -58,26 +58,27 @@ body {
 
 .main-content { 
   transition: margin-left 0.25s ease-in-out; 
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Quando sidebar está aberta */
 .main-content.sidebar-open {
   margin-left: 260px;
+  max-width: calc(100% - 260px);
 }
 
-/* Quando sidebar está fechada */
 .main-content.sidebar-closed {
   margin-left: 98px;
+  max-width: calc(100% - 98px);
 }
 
-/* Quando não tem sidebar (página de login ou cadastro) */
 .main-content.no-sidebar {
   margin-left: 0 !important;
+  max-width: 100% !important;
 }
 
-/* Sensor strip na esquerda para capturar hover */
 .sidebar-sensor { 
   position: fixed; 
   left: 0; 
@@ -88,11 +89,11 @@ body {
   background: transparent;
 }
 
-/* Responsividade para telas menores */
 @media (max-width: 768px) {
   .main-content.sidebar-open,
   .main-content.sidebar-closed {
     margin-left: 0;
+    max-width: 100%;
   }
 }
 </style>

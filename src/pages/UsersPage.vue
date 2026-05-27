@@ -212,6 +212,7 @@ import {
   mdiAccountCircle,
   mdiAccountMultiple
 } from '@mdi/js'
+import { getAllUsers } from '../service/mockData'
 
 const { t } = useI18n()
 
@@ -286,27 +287,40 @@ const getRoleName = (role: string) => {
 }
 
 const loadUsers = () => {
-  const storedUsers = localStorage.getItem('users')
-  if (storedUsers) {
-    const allUsers = JSON.parse(storedUsers)
-    users.value = allUsers.map((user: any) => ({
-      ...user,
-      status: user.status || 'approved',
-      role: user.role || 'user',
-      phone: user.phone || '—'
-    }))
+  // FORÇAR CARREGAMENTO DOS MOCKS - LIMPA O LOCALSTORAGE PRIMEIRO
+  const forceMock = true; // Mude para false quando quiser voltar a usar o localStorage
+  
+  if (forceMock) {
+    localStorage.removeItem('users')
+
+    import('../service/mockData').then(module => {
+      const allUsers = module.getAllUsers()
+      console.log('✅ Mocks carregados:', allUsers.length, 'usuários')
+      console.log('📋 Aprovados:', allUsers.filter(u => u.status === 'approved').length)
+      console.log('⏳ Pendentes:', allUsers.filter(u => u.status === 'pending').length)
+      
+      users.value = allUsers.map((user: any) => ({
+        ...user,
+        phone: user.phone || '—'
+      }))
+      saveUsers()
+    }).catch(err => {
+      console.error('❌ Erro ao carregar mocks:', err)
+      loadManualMocks()
+    })
   } else {
-    users.value = [
-      {
-        name: 'Administrador',
-        email: 'admin@enersigh.com',
-        phone: '(11) 99999-9999',
-        role: 'admin',
-        status: 'approved',
-        createdAt: new Date().toISOString()
-      }
-    ]
-    saveUsers()
+    const storedUsers = localStorage.getItem('users')
+    if (storedUsers) {
+      const allUsers = JSON.parse(storedUsers)
+      users.value = allUsers.map((user: any) => ({
+        ...user,
+        status: user.status || 'approved',
+        role: user.role || 'user',
+        phone: user.phone || '—'
+      }))
+    } else {
+      loadManualMocks()
+    }
   }
 }
 

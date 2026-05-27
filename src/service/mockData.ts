@@ -290,14 +290,130 @@ export function calcularSAM(area: any) {
   return Math.floor(Math.random() * 500) + 50;
 }
 
+// Usuários existentes (aprovados)
 export const users = [
-  { id: 1, name: 'Alice Silva', email: 'alice@empresa.com' },
-  { id: 2, name: 'Bruno Costa', email: 'bruno@empresa.com' },
-  { id: 3, name: 'Carla Souza', email: 'carla@empresa.com' },
+  { id: 1, name: 'Alice Silva', email: 'alice@empresa.com', phone: '(11) 91234-5678', role: 'admin', status: 'approved', createdAt: '2024-01-15T10:00:00Z' },
+  { id: 2, name: 'Bruno Costa', email: 'bruno@empresa.com', phone: '(11) 92345-6789', role: 'manager', status: 'approved', createdAt: '2024-02-20T14:30:00Z' },
+  { id: 3, name: 'Carla Souza', email: 'carla@empresa.com', phone: '(11) 93456-7890', role: 'user', status: 'approved', createdAt: '2024-03-10T09:15:00Z' },
+  { id: 4, name: 'Daniel Oliveira', email: 'daniel@empresa.com', phone: '(11) 94567-8901', role: 'user', status: 'approved', createdAt: '2024-04-05T11:45:00Z' },
+  { id: 5, name: 'Fernanda Lima', email: 'fernanda@empresa.com', phone: '(11) 95678-9012', role: 'manager', status: 'approved', createdAt: '2024-05-12T16:20:00Z' },
 ];
+
+// USUÁRIOS PENDENTES PARA APROVAÇÃO (MOCKS)
+export const pendingUsers = [
+  { 
+    id: 101, 
+    name: 'Roberto Mendes', 
+    email: 'roberto.mendes@novaempresa.com', 
+    phone: '(11) 98888-7777',
+    role: 'user',
+    status: 'pending',
+    createdAt: '2026-05-20T08:30:00Z',
+    requestReason: 'Solicitação de acesso ao sistema'
+  },
+  { 
+    id: 102, 
+    name: 'Mariana Santos', 
+    email: 'mariana.santos@consultoria.com', 
+    phone: '(11) 97777-6666',
+    role: 'user',
+    status: 'pending',
+    createdAt: '2026-05-20T10:15:00Z',
+    requestReason: 'Trabalha como analista de energia'
+  },
+  { 
+    id: 103, 
+    name: 'Carlos Eduardo Rocha', 
+    email: 'carlos.rocha@distribuidora.com', 
+    phone: '(11) 96666-5555',
+    role: 'manager',
+    status: 'pending',
+    createdAt: '2026-05-19T14:45:00Z',
+    requestReason: 'Gestor da área de operações'
+  },
+  { 
+    id: 104, 
+    name: 'Patrícia Alves', 
+    email: 'patricia.alves@energia.com', 
+    phone: '(11) 95555-4444',
+    role: 'user',
+    status: 'pending',
+    createdAt: '2026-05-19T09:20:00Z',
+    requestReason: 'Necessita acesso para relatórios'
+  },
+  { 
+    id: 105, 
+    name: 'Fernando Lima Junior', 
+    email: 'fernando.junior@tecnologia.com', 
+    phone: '(11) 94444-3333',
+    role: 'admin',
+    status: 'pending',
+    createdAt: '2026-05-18T16:00:00Z',
+    requestReason: 'Administrador de sistemas'
+  },
+  { 
+    id: 106, 
+    name: 'Juliana Costa', 
+    email: 'juliana.costa@monitoramento.com', 
+    phone: '(11) 93333-2222',
+    role: 'user',
+    status: 'pending',
+    createdAt: '2026-05-18T11:30:00Z',
+    requestReason: 'Monitoramento de indicadores'
+  },
+  { 
+    id: 107, 
+    name: 'Ricardo Martins', 
+    email: 'ricardo.martins@consultoriaenergia.com', 
+    phone: '(11) 92222-1111',
+    role: 'manager',
+    status: 'pending',
+    createdAt: '2026-05-17T13:50:00Z',
+    requestReason: 'Coordenador de projetos'
+  },
+  { 
+    id: 108, 
+    name: 'Amanda Souza', 
+    email: 'amanda.souza@analytics.com', 
+    phone: '(11) 91111-0000',
+    role: 'user',
+    status: 'pending',
+    createdAt: '2026-05-17T08:45:00Z',
+    requestReason: 'Análise de dados energéticos'
+  },
+];
+
+// Função para obter todos os usuários (aprovados + pendentes)
+export const getAllUsers = () => {
+  return [...users, ...pendingUsers];
+};
+
+// Função para aprovar um usuário pendente
+export const approveUser = (userId: number) => {
+  const userIndex = pendingUsers.findIndex(u => u.id === userId);
+  if (userIndex !== -1) {
+    const approvedUser = { ...pendingUsers[userIndex], status: 'approved' };
+    pendingUsers.splice(userIndex, 1);
+    users.push(approvedUser);
+    return true;
+  }
+  return false;
+};
+
+// Função para rejeitar/recusar um usuário pendente
+export const rejectUser = (userId: number) => {
+  const userIndex = pendingUsers.findIndex(u => u.id === userId);
+  if (userIndex !== -1) {
+    pendingUsers.splice(userIndex, 1);
+    return true;
+  }
+  return false;
+};
 
 export const logs = [
   { id: 1, ts: '2026-04-27 10:12:34', user: 'alice', action: 'login', details: 'Login bem-sucedido' },
   { id: 2, ts: '2026-04-27 11:05:00', user: 'bruno', action: 'gerar_relatorio', details: 'Gerou relatório PDF' },
   { id: 3, ts: '2026-04-27 12:30:11', user: 'carla', action: 'desenhar_area', details: 'Calculou TAM/SAM' },
+  { id: 4, ts: '2026-05-20 09:00:00', user: 'roberto.mendes', action: 'solicitar_acesso', details: 'Solicitou acesso ao sistema' },
+  { id: 5, ts: '2026-05-20 11:30:00', user: 'mariana.santos', action: 'solicitar_acesso', details: 'Solicitou acesso ao sistema' },
 ];

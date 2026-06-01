@@ -1,4 +1,31 @@
 {
+  "home": {
+    "welcome": "Welcome to",
+    "title": "Enersigh",
+    "subtitle": "Intelligent Monitoring and Forecasting System for Energy Indicators",
+    "modules": {
+      "map": {
+        "title": "Geospatial Map",
+        "description": "View power lines and interactive indicators"
+      },
+      "forecast": {
+        "title": "Forecast Agent",
+        "description": "Intelligent predictions for DEC and FEC indicators"
+      },
+      "users": {
+        "title": "Users",
+        "description": "Manage system access and permissions"
+      },
+      "logs": {
+        "title": "System Logs",
+        "description": "Complete history of activities and events"
+      },
+      "profile": {
+        "title": "My Profile",
+        "description": "Manage your information and preferences"
+      }
+    }
+  },
   "sidebar": {
     "home": "Home",
     "map": "Map",
@@ -8,7 +35,8 @@
     "reserve": "Reserve",
     "language": "Language",
     "portuguese": "Portuguese",
-    "english": "English"
+    "english": "English",
+    "logout": "Logout"
   },
   "filters": {
     "title": "Map Filters",
@@ -48,8 +76,7 @@
     "tower": "Tower",
     "transmission_tower": "Transmission Tower",
     "drawError": "Invalid drawing!"
-  }
-  ,
+  },
   "floating": {
     "headerTitle": "Selected area details",
     "expand": "Expand",
@@ -86,5 +113,148 @@
     "sam": "SAM",
     "lossTechnical": "TECHNICAL LOSSES",
     "lossNonTechnical": "NON-TECHNICAL LOSSES"
-  }
+  },
+  "legend": {
+    "title": "Criticality Classification",
+    "green": {
+      "title": "🟢 Green - Good availability",
+      "description": "Healthy network, no restrictions for new connections"
+    },
+    "orange": {
+      "title": "🟠 Orange - Attention required",
+      "description": "Network with some limitations, requires monitoring"
+    },
+    "red": {
+      "title": "🔴 Red - High criticality",
+      "description": "Saturated network, requires reinforcement"
+    },
+    "footer": "Based on Criticality Score (0–100%)"
+  },
+  "users": {
+    "title": "User Management",
+    "subtitle": "Manage system users",
+    "approved": "Approved Users",
+    "pending": "Pending",
+    "search": "Search users...",
+    "searchPending": "Search pending...",
+    "newUser": "New User",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role",
+    "date": "Date",
+    "actions": "Actions",
+    "anonymize": "Anonymize",
+    "edit": "Edit",
+    "delete": "Delete",
+    "approve": "Approve",
+    "reject": "Reject",
+    "noUsers": "No users found",
+    "noPending": "No pending users",
+    "editUser": "Edit User",
+    "fullName": "Full name",
+    "password": "Password",
+    "cancel": "Cancel",
+    "save": "Save",
+    "roleUser": "User",
+    "roleManager": "Manager",
+    "roleAdmin": "Admin",
+    "anonymous": "Anonymous User",
+    "userApproved": "User approved:",
+    "userRejected": "User rejected:",
+    "userAnonymized": "User anonymized successfully",
+    "userDeleted": "User deleted:",
+    "userUpdated": "User updated successfully",
+    "userCreated": "User created successfully",
+    "emailExists": "Email already exists",
+    "confirmReject": "Do you want to reject",
+    "confirmAnonymize": "Do you want to anonymize user",
+    "confirmDelete": "Do you want to permanently delete user"
+  },
+  "profile": {
+    "tabs": {
+      "info": "Personal Information",
+      "security": "Security",
+      "consent": "Consent"
+    },
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "changePassword": "Change Password",
+    "passwordsDoNotMatch": "Passwords do not match!",
+    "passwordMinLength": "New password must be at least 6 characters!",
+    "passwordChanged": "Password changed successfully!",
+    "infoUpdated": "Information updated successfully!",
+    "preferencesSaved": "Communication preferences saved!",
+    "accountDeleted": "Account successfully deleted! Redirecting...",
+    "termsAndConsent": "Terms and Consent",
+    "acceptTerms": "I have read and accept the",
+    "acceptPrivacy": "I have read and accept the",
+    "acceptCommunications": "I accept to receive communications about the system",
+    "termsOfUse": "Terms of Use",
+    "privacyPolicy": "Privacy Policy",
+    "requiredCannotUncheck": "Required - Cannot be unchecked",
+    "optional": "Optional",
+    "revokeConsent": "Revoke Consent",
+    "revokeWarning": "Attention: By revoking your consent, your account will be permanently deleted and you will immediately lose access to the system. This action cannot be undone.",
+    "revokeAndDelete": "Revoke Consent and Delete Account",
+    "revokeConfirmation": "You are about to REVOKE your consent and PERMANENTLY DELETE your account.",
+    "thisActionWill": "This action will:",
+    "removeAllData": "Remove all your data from the system",
+    "revokeAccess": "Immediately revoke your access to the platform",
+    "deleteHistory": "Permanently delete your activity history",
+    "cannotUndo": "Cannot be undone",
+    "typeToConfirm": "Type",
+    "confirmDeleteText": "DELETE MY ACCOUNT",
+    "confirmRevoke": "Yes, revoke consent and delete account",
+    "attention": "Attention!",
+    "understood": "I understand",
+    "termsOfUseTitle": "Terms of Use - Enersigh",
+    "privacyPolicyTitle": "Privacy Policy - Enersigh",
+    "termsSection1": "Acceptance of Terms",
+    "termsSection1Text": "By accessing and using the Enersigh system, you agree to comply with these Terms of Use.",
+    "termsSection2": "Use of the System",
+    "termsSection2Text": "The system is intended for monitoring and forecasting energy indicators. You agree to use the system only for legal and authorized purposes.",
+    "termsSection3": "Data and Privacy",
+    "termsSection3Text": "Your data will be treated in accordance with our Privacy Policy. You are responsible for the accuracy of the information provided.",
+    "termsSection4": "Responsibilities",
+    "termsSection4Text": "Enersigh is not responsible for decisions made based on data provided by the system without proper validation.",
+    "termsSection5": "Modifications",
+    "termsSection5Text": "We reserve the right to modify these terms at any time, with prior notice.",
+    "termsSection6": "Cancellation",
+    "termsSection6Text": "You can cancel your account at any time, which will result in the deletion of your data.",
+    "privacySection1": "Data Collection",
+    "privacySection1Text": "We collect information such as name, email and system usage data to improve our service delivery.",
+    "privacySection2": "Use of Information",
+    "privacySection2Text": "Your data is used exclusively for monitoring and forecasting energy indicators.",
+    "privacySection3": "Sharing",
+    "privacySection3Text": "We do not share your personal data with third parties without your explicit consent.",
+    "privacySection4": "Security",
+    "privacySection4Text": "We implement security measures to protect your data against unauthorized access.",
+    "privacySection5": "Your Rights",
+    "privacySection5Text": "You have the right to access, correct or request the deletion of your data at any time.",
+    "privacySection6": "Cookies",
+    "privacySection6Text": "We use cookies to improve your browsing experience on the system."
+  },
+ "forecast": {
+  "title": "Forecast Agent",
+  "subtitle": "Intelligent predictions for DEC and FEC indicators",
+  "unitCode": "Unit Code",
+  "indicator": "Indicator",
+  "search": "Search",
+  "loading": "Loading data...",
+  "noData": "No data found for the selected filters",
+  "tryAgain": "Try again",
+  "avgMAE": "Average MAE",
+  "totalPredictions": "Total Predictions",
+  "lastPrediction": "Last Prediction",
+  "trend": "Trend",
+  "predictionTimeline": "Prediction Timeline",
+  "actualMAE": "Actual MAE",
+  "prediction": "Prediction",
+  "detailsTable": "Predictions Details",
+  "date": "Date",
+  "difference": "Difference",
+  "value": "Value"
+}
 }

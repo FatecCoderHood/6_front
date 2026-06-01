@@ -1,54 +1,64 @@
+<!-- src/components/AppSidebar.vue -->
 <template>
   <aside :class="['app-sidebar', { open: open }]" @mouseleave="handleMouseLeave">
     <button class="collapse-btn" @click="toggle">{{ open ? '×' : '☰' }}</button>
     <nav class="nav">
-          <router-link to="/" class="nav-item" @click="closeSidebar">
-            <span class="icon" v-html="svg(mdiHome)"></span>
-            <span v-if="open">{{ t('sidebar.home') }}</span>
-          </router-link>
-          <router-link to="/mapa" class="nav-item" @click="closeSidebar">
-            <span class="icon" v-html="svg(mdiMap)"></span>
-            <span v-if="open">{{ t('sidebar.map') }}</span>
-          </router-link>
-          <router-link to="/dashboard" class="nav-item" @click="closeSidebar">
-            <span class="icon" v-html="svg(mdiViewDashboard)"></span>
-            <span v-if="open">{{ t('sidebar.dashboard') }}</span>
-          </router-link>
-          <router-link to="/usuarios" class="nav-item" @click="closeSidebar">
-            <span class="icon" v-html="svg(mdiAccount)"></span>
-            <span v-if="open">{{ t('sidebar.users') }}</span>
-          </router-link>
-          <router-link to="/logs" class="nav-item" @click="closeSidebar">
-            <span class="icon" v-html="svg(mdiHistory)"></span>
-            <span v-if="open">{{ t('sidebar.logs') }}</span>
-          </router-link>
-          <router-link to="/reserva" class="nav-item" @click="closeSidebar">
-            <span class="icon" v-html="svg(mdiCalendar)"></span>
-            <span v-if="open">{{ t('sidebar.reserve') }}</span>
-          </router-link>
+      <router-link to="/" class="nav-item" @click="closeSidebar">
+        <span class="icon" v-html="svg(mdiHome)"></span>
+        <span v-if="open">{{ t('sidebar.home') }}</span>
+      </router-link>
+      <router-link to="/mapa" class="nav-item" @click="closeSidebar">
+        <span class="icon" v-html="svg(mdiMap)"></span>
+        <span v-if="open">{{ t('sidebar.map') }}</span>
+      </router-link>
+      <router-link to="/dashboard" class="nav-item" @click="closeSidebar">
+        <span class="icon" v-html="svg(mdiViewDashboard)"></span>
+        <span v-if="open">{{ t('sidebar.dashboard') }}</span>
+      </router-link>
+      <router-link to="/usuarios" class="nav-item" @click="closeSidebar">
+        <span class="icon" v-html="svg(mdiAccount)"></span>
+        <span v-if="open">{{ t('sidebar.users') }}</span>
+      </router-link>
+      <router-link to="/logs" class="nav-item" @click="closeSidebar">
+        <span class="icon" v-html="svg(mdiHistory)"></span>
+        <span v-if="open">{{ t('sidebar.logs') }}</span>
+      </router-link>
+      <router-link to="/reserva" class="nav-item" @click="closeSidebar">
+        <span class="icon" v-html="svg(mdiCalendar)"></span>
+        <span v-if="open">{{ t('sidebar.reserve') }}</span>
+      </router-link>
 
-          <div class="language-switch" :class="{ open: open }">
-            <div class="lang-left">
-              <span v-if="open" class="lang-label">{{ t('sidebar.language') }}</span>
-            </div>
-            <div class="lang-right">
-              <div class="switch" @click="toggleLang" role="button" :aria-pressed="isEnglishComputed">
-                <div class="slider" :class="{ on: isEnglishComputed }"></div>
-              </div>
-              <span v-if="open" class="lang-name">{{ localLocale === 'pt' ? t('sidebar.portuguese') : t('sidebar.english') }}</span>
-            </div>
+      <div class="language-switch" :class="{ open: open }">
+        <div class="lang-left">
+          <span v-if="open" class="lang-label">{{ t('sidebar.language') }}</span>
+        </div>
+        <div class="lang-right">
+          <div class="switch" @click="toggleLang" role="button" :aria-pressed="isEnglishComputed">
+            <div class="slider" :class="{ on: isEnglishComputed }"></div>
           </div>
-        </nav>
+          <span v-if="open" class="lang-name">{{ localLocale === 'pt' ? t('sidebar.portuguese') : t('sidebar.english') }}</span>
+        </div>
+      </div>
+
+      <!-- BOTÃO DE LOGOUT ADICIONADO NO FINAL -->
+      <div class="logout-divider" v-if="open"></div>
+      <button class="logout-btn nav-item" @click="handleLogout">
+        <span class="icon" v-html="svg(mdiLogout)"></span>
+        <span v-if="open">{{ t('sidebar.logout') }}</span>
+      </button>
+    </nav>
   </aside>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { mdiHome, mdiMap, mdiViewDashboard, mdiAccount, mdiHistory, mdiCalendar } from '@mdi/js'
+import { useRouter } from 'vue-router'
+import { mdiHome, mdiMap, mdiViewDashboard, mdiAccount, mdiHistory, mdiCalendar, mdiLogout } from '@mdi/js'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits(['toggle'])
+const router = useRouter()
 
 let timeoutId: any = null
 
@@ -81,6 +91,12 @@ function handleMouseLeave() {
       emit('toggle')
     }, 300)
   }
+}
+
+function handleLogout() {
+  localStorage.removeItem('user')
+  sessionStorage.removeItem('user')
+  router.push('/login')
 }
 
 function svg(path: string, size = 20) {
@@ -147,6 +163,7 @@ function svg(path: string, size = 20) {
   flex-direction: column; 
   gap: 12px; 
   width: 100%;
+  flex: 1;
 }
 
 .nav-item { 
@@ -159,6 +176,11 @@ function svg(path: string, size = 20) {
   align-items: center;
   transition: all 0.2s;
   white-space: nowrap;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  font-size: 1rem;
 }
 
 .app-sidebar:not(.open) .nav-item {
@@ -194,13 +216,13 @@ function svg(path: string, size = 20) {
 }
 
 .nav-item.router-link-active { 
-  background: rgba(25, 118, 210, 0.4);
-  border-left: 3px solid #1976d2;
+  background: rgba(255, 215, 0, 0.2);
+  border-left: 3px solid #FFD700;
 }
 
 .app-sidebar:not(.open) .nav-item.router-link-active {
   border-left: none;
-  background: rgba(25, 118, 210, 0.5);
+  background: rgba(255, 215, 0, 0.3);
 }
 
 .app-sidebar .nav-item span:not(.icon) {
@@ -225,8 +247,29 @@ function svg(path: string, size = 20) {
 
 .switch { width: 44px; height: 24px; background: rgba(255,255,255,0.12); border-radius: 999px; display:flex; align-items:center; padding:3px; cursor:pointer }
 .slider { width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: transform 0.2s }
-.slider.on { transform: translateX(20px); background: #1976d2 }
+.slider.on { transform: translateX(20px); background: #FFD700 }
 
 .language-switch:not(.open) { justify-content: center }
 .language-switch:not(.open) .lang-left, .language-switch:not(.open) .lang-name { display: none }
+
+/* Divider e botão de logout */
+.logout-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 16px 0 8px 0;
+}
+
+.logout-btn {
+  color: #fff;
+  margin-top: auto;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 82, 82, 0.2);
+  color: #ff5252;
+}
+
+.logout-btn:hover .icon svg {
+  color: #ff5252;
+}
 </style>

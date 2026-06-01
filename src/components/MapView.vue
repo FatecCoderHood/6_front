@@ -1,29 +1,70 @@
+<!-- src/components/MapView.vue -->
 <template>
   <div id="map" style="height: 100vh; width: 100%; position: absolute; top: 0; left: 0;"></div>
+  <Legend />
+  <div v-if="isLoading" class="loading-overlay">
+    <div class="spinner"></div>
+    <span>Carregando dados da região...</span>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch, nextTick } from 'vue'
+import { onMounted, watch, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
 import 'leaflet-draw'
-import { linhasEnergia, distribuidoras } from '../service/mockData'
-import { mdiTransmissionTower } from '@mdi/js'
+import { useMapaData } from '../composables/useMapaData'
+import type { LinhaEnergia } from '../types/mapa.types'
+import Legend from './Legend.vue'
 
 const props = defineProps<{ filtros: any }>()
 const emit = defineEmits(['update-metricas'])
+
+const { linhas, isLoading, loadData } = useMapaData()
 
 let map: L.Map
 let drawnItems: L.FeatureGroup
 let drawControl: any
 let linesLayer: L.LayerGroup
-let towersLayer: L.LayerGroup
+let lastLoadedBounds: any = null
+let debounceTimeout: any = null
 
 const { t } = useI18n()
+const MAX_LINHAS = 76000
 
-// Função para verificar se um ponto está dentro do polígono
+function classificarCriticidade(score: number): string {
+  if (score === 0) return 'Verde'
+  if (score > 0 && score <= 10) return 'Laranja'
+  return 'Vermelho'
+}
+
+const corMap: Record<string, string> = {
+  'Verde': '#4CAF50',
+  'Laranja': '#FF9800',
+  'Vermelho': '#F44336'
+}
+
+function getCorPorScore(score: number): string {
+  const categoria = classificarCriticidade(score)
+  return corMap[categoria]
+}
+
+function calcularAreaPoligono(polygonLayer: any): number {
+  try {
+    const bounds = polygonLayer.getBounds()
+    if (bounds && bounds.getNorth && bounds.getSouth) {
+      const latDiff = Math.abs(bounds.getNorth() - bounds.getSouth())
+      const lngDiff = Math.abs(bounds.getEast() - bounds.getWest())
+      return (latDiff * 111) * (lngDiff * 111)
+    }
+  } catch(e) {
+    console.warn('Erro ao calcular área:', e)
+  }
+  return 0
+}
+
 function isPointInPolygon(point: [number, number], polygon: L.LatLng[][]): boolean {
   let inside = false
   const polygonPoints = polygon[0]
@@ -40,7 +81,6 @@ function isPointInPolygon(point: [number, number], polygon: L.LatLng[][]): boole
   return inside
 }
 
-// Função para verificar se uma linha cruza o polígono
 function lineIntersectsPolygon(lineCoords: [number, number][], polygon: L.LatLng[][]): boolean {
   for (const point of lineCoords) {
     if (isPointInPolygon(point, polygon)) {
@@ -50,20 +90,32 @@ function lineIntersectsPolygon(lineCoords: [number, number][], polygon: L.LatLng
   return false
 }
 
-// Função que calcula métricas REAIS baseadas nas linhas dentro do polígono
 function calculateRealMetricsFromPolygon(polygonLayer: any) {
-  const polygonLatLngs = polygonLayer.getLatLngs()
+  console.log('📐 Calculando métricas do polígono...')
   
-  // Filtrar linhas por distribuidora (se houver filtro)
-  let linhas = [...linhasEnergia]
-  if (props.filtros.distribuidoras && props.filtros.distribuidoras.length > 0) {
-    linhas = linhas.filter(l => props.filtros.distribuidoras.includes(l.distribuidoraId))
+  if (!polygonLayer.getLatLngs || polygonLayer.getLatLngs().length === 0) {
+    console.warn('Polígono sem pontos')
+    return null
   }
   
-  // Linhas dentro do polígono
-  const linhasNoPoligono: typeof linhasEnergia = []
+  const polygonLatLngs = polygonLayer.getLatLngs()
   
-  for (const linha of linhas) {
+  let area = 0
+  try {
+    const bounds = polygonLayer.getBounds()
+    if (bounds && typeof bounds.getNorth === 'function') {
+      const latDiff = Math.abs(bounds.getNorth() - bounds.getSouth())
+      const lngDiff = Math.abs(bounds.getEast() - bounds.getWest())
+      area = (latDiff * 111) * (lngDiff * 111)
+    }
+  } catch(e) {
+    area = 0
+  }
+  
+  const linhasNoPoligono: LinhaEnergia[] = []
+  const linhasAtuais = linhas.value
+  
+  for (const linha of linhasAtuais) {
     const lineLatLngs = linha.coordinates.map(coord => [coord[1], coord[0]]) as [number, number][]
     
     if (lineIntersectsPolygon(lineLatLngs, polygonLatLngs)) {
@@ -71,206 +123,137 @@ function calculateRealMetricsFromPolygon(polygonLayer: any) {
     }
   }
   
-  if (linhasNoPoligono.length === 0) {
-    return null
-  }
+  console.log(`📐 Linhas dentro do polígono: ${linhasNoPoligono.length}`)
   
-  // Calcular médias
-  let totalDEC = 0
-  let totalFEC = 0
-  let totalComprimento = 0
+  if (linhasNoPoligono.length === 0) return null
+  
+  let totalDEC = 0, totalFEC = 0, totalScore = 0, totalComprimento = 0
   
   for (const linha of linhasNoPoligono) {
     totalDEC += linha.dec_realizado
     totalFEC += linha.fec_realizado
+    totalScore += linha.score
     totalComprimento += linha.coordinates.length
   }
   
   const count = linhasNoPoligono.length
-  
-  // Calcular distribuidora predominante
-  const distribCount: Record<number, number> = {}
-  for (const linha of linhasNoPoligono) {
-    distribCount[linha.distribuidoraId] = (distribCount[linha.distribuidoraId] || 0) + 1
-  }
-  let predominantDistId = 1
-  let maxCount = 0
-  for (const [id, c] of Object.entries(distribCount)) {
-    if (c > maxCount) {
-      maxCount = c
-      predominantDistId = parseInt(id)
-    }
-  }
-  const distribPredominante = distribuidoras.find(d => d.id === predominantDistId)
-  
-  // TAM e SAM baseados no comprimento total das linhas
   const tam = totalComprimento * 50
   const sam = totalComprimento * 25
   
-  return {
+  const result = {
     tam: tam,
     sam: sam,
     dec: totalDEC / count,
     fec: totalFEC / count,
     decLimite: linhasNoPoligono[0]?.dec_limite || 6.5,
     fecLimite: linhasNoPoligono[0]?.fec_limite || 3.2,
+    score: totalScore / count,
     totalLinhas: count,
-    distribuidora: distribPredominante?.nome || 'Múltiplas'
-  }
-}
-
-function filtrarLinhas() {
-  let linhas = [...linhasEnergia]
-  
-  if (props.filtros.distribuidoras && props.filtros.distribuidoras.length > 0) {
-    linhas = linhas.filter(l => props.filtros.distribuidoras.includes(l.distribuidoraId))
+    area: area,
+    distribuidora: 'Não disponível'
   }
   
-  return linhas
-}
-
-function getValorIndicador(linha: any, indicador: string): number {
-  const mapa: Record<string, number> = {
-    'DEC': linha.dec_realizado,
-    'DEC_realizado': linha.dec_realizado,
-    'DEC_limite': linha.dec_limite,
-    'Desvio_DEC': linha.desvio_dec,
-    'FEC': linha.fec_realizado,
-    'FEC_realizado': linha.fec_realizado,
-    'FEC_limite': linha.fec_limite,
-    'Desvio_FEC': linha.desvio_fec
-  }
-  return mapa[indicador] ?? 0
-}
-
-function getCorPorDesvio(desvioPercentual: number): string {
-  if (desvioPercentual >= 10) return '#ff4444'
-  if (desvioPercentual > 0) return '#ffaa44'
-  return '#44ff44'
-}
-
-function getCorParaLinha(linha: any): string {
-  const indicadoresAtivosDEC = Object.entries(props.filtros.indicadoresDEC || {})
-    .filter(([_, ativo]) => ativo === true)
-    .map(([nome]) => nome)
-  
-  const indicadoresAtivosFEC = Object.entries(props.filtros.indicadoresFEC || {})
-    .filter(([_, ativo]) => ativo === true)
-    .map(([nome]) => nome)
-  
-  const todosIndicadores = [...indicadoresAtivosDEC, ...indicadoresAtivosFEC]
-  
-  if (todosIndicadores.length === 0) {
-    return '#1976d2'
-  }
-  
-  const primeiroIndicador = todosIndicadores[0]
-  let valor = getValorIndicador(linha, primeiroIndicador)
-  
-  if (primeiroIndicador === 'DEC' || primeiroIndicador === 'DEC_realizado') {
-    const limite = linha.dec_limite
-    if (limite && limite > 0) {
-      valor = ((valor - limite) / limite) * 100
-    }
-  } else if (primeiroIndicador === 'FEC' || primeiroIndicador === 'FEC_realizado') {
-    const limite = linha.fec_limite
-    if (limite && limite > 0) {
-      valor = ((valor - limite) / limite) * 100
-    }
-  }
-  
-  return getCorPorDesvio(valor)
+  console.log('📊 Métricas calculadas:', result)
+  return result
 }
 
 function renderizarLinhas() {
   if (!map) return
   
-  if (linesLayer) {
-    linesLayer.clearLayers()
-  } else {
-    linesLayer = L.layerGroup().addTo(map)
+  if (linesLayer) linesLayer.clearLayers()
+  else linesLayer = L.layerGroup().addTo(map)
+  
+  const linhasAtuais = linhas.value
+  const linhasParaRenderizar = linhasAtuais.slice(0, MAX_LINHAS)
+  
+  if (linhasAtuais.length > MAX_LINHAS) {
+    console.warn(`⚠️ ${linhasAtuais.length} linhas encontradas. Renderizando apenas ${MAX_LINHAS}.`)
   }
   
-  const linhas = filtrarLinhas()
+  console.log(`🎨 Renderizando ${linhasParaRenderizar.length} linhas`)
   
-  linhas.forEach(linha => {
-    const distrib = distribuidoras.find(d => d.id === linha.distribuidoraId)
-    const cor = getCorParaLinha(linha)
+  linhasParaRenderizar.forEach(linha => {
+    const cor = getCorPorScore(linha.score)
+    const latLngs = linha.coordinates.map(coord => [coord[1], coord[0]])
     
-    const latLngs = linha.coordinates.map((coord: [number, number]) => [coord[1], coord[0]])
+    if (latLngs.length < 2) return
     
     const polyline = L.polyline(latLngs as L.LatLngExpression[], {
       color: cor,
-      weight: 5,
-      opacity: 0.9
+      weight: 3,
+      opacity: 0.8
     }).addTo(linesLayer)
     
-    let popupContent = `<b>${linha.name || distrib?.nome || t('map.line')}</b><br><hr>`
+    const categoria = classificarCriticidade(linha.score)
+    let categoriaText = categoria === 'Verde' ? '✅ Boa disponibilidade' : 
+                        categoria === 'Laranja' ? '⚠️ Atenção necessária' : '🔴 Restrição'
+    
+    let popupContent = `<b>${linha.name}</b><br><hr>`
+    popupContent += `<b>Score:</b> ${linha.score.toFixed(1)}<br>`
+    popupContent += `<b>Classificação:</b> ${categoriaText}<br>`
     popupContent += `<b>DEC:</b> ${linha.dec_realizado.toFixed(2)} (limite: ${linha.dec_limite.toFixed(2)})<br>`
-    popupContent += `<b>Desvio DEC:</b> ${linha.desvio_dec >= 0 ? '+' : ''}${linha.desvio_dec.toFixed(1)}%<br>`
     popupContent += `<b>FEC:</b> ${linha.fec_realizado.toFixed(2)} (limite: ${linha.fec_limite.toFixed(2)})<br>`
+    popupContent += `<b>Desvio DEC:</b> ${linha.desvio_dec >= 0 ? '+' : ''}${linha.desvio_dec.toFixed(1)}%<br>`
     popupContent += `<b>Desvio FEC:</b> ${linha.desvio_fec >= 0 ? '+' : ''}${linha.desvio_fec.toFixed(1)}%`
     
     polyline.bindPopup(popupContent)
   })
-  
-  if (props.filtros.mostrarTorres !== false) {
-    renderizarTorres()
-  }
 }
 
-function renderizarTorres() {
+async function carregarDados() {
   if (!map) return
   
-  if (towersLayer) {
-    towersLayer.clearLayers()
-  } else {
-    towersLayer = L.layerGroup().addTo(map)
+  const bounds = map.getBounds()
+  const year = props.filtros.ano || 2025
+  
+  const buffer = 0.05
+  if (lastLoadedBounds) {
+    const sameBounds = 
+      Math.abs(lastLoadedBounds.minx - bounds.getWest()) < buffer &&
+      Math.abs(lastLoadedBounds.miny - bounds.getSouth()) < buffer &&
+      Math.abs(lastLoadedBounds.maxx - bounds.getEast()) < buffer &&
+      Math.abs(lastLoadedBounds.maxy - bounds.getNorth()) < buffer
+    
+    if (sameBounds) {
+      console.log('📦 Bounds similares, ignorando requisição')
+      return
+    }
   }
   
-  const linhas = filtrarLinhas()
+  lastLoadedBounds = {
+    minx: bounds.getWest(),
+    miny: bounds.getSouth(),
+    maxx: bounds.getEast(),
+    maxy: bounds.getNorth()
+  }
   
-  linhas.forEach(linha => {
-    const distrib = distribuidoras.find(d => d.id === linha.distribuidoraId)
-    const coords = linha.coordinates
-    const midIndex = Math.floor(coords.length / 2)
-    const midPoint = coords[midIndex]
-    
-    const torreIcon = L.divIcon({
-      html: `<svg width="36" height="36" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="${mdiTransmissionTower}" fill="#FFD700" stroke="#fff" stroke-width="0.5"/>
-      </svg>`,
-      className: 'torre-icon',
-      iconSize: [36, 36],
-      iconAnchor: [18, 18],
-      popupAnchor: [0, -18]
-    })
-    
-    L.marker([midPoint[1], midPoint[0]], { icon: torreIcon })
-      .addTo(towersLayer)
-      .bindPopup(`
-        <b>${linha.name || distrib?.nome || t('map.tower')}</b><br>
-        ${t('map.transmission_tower')}<br>
-        DEC: ${linha.dec_realizado.toFixed(2)} | FEC: ${linha.fec_realizado.toFixed(2)}
-      `)
+  console.log('📡 Carregando dados da região visível...')
+  
+  await loadData(year, {
+    minx: bounds.getWest(),
+    miny: bounds.getSouth(),
+    maxx: bounds.getEast(),
+    maxy: bounds.getNorth()
   })
+  
+  console.log(`📊 Carregadas ${linhas.value.length} linhas na região`)
+  
+  renderizarLinhas()
 }
 
-function limparMapa() {
-  if (linesLayer) {
-    linesLayer.clearLayers()
-  }
-  if (towersLayer) {
-    towersLayer.clearLayers()
-  }
+function carregarDadosDebounced() {
+  if (debounceTimeout) clearTimeout(debounceTimeout)
+  debounceTimeout = setTimeout(() => {
+    carregarDados()
+  }, 300)
 }
 
 function initMap() {
   if (map) return
   
-  map = L.map('map', {
-    zoomControl: false,
-  }).setView([-23.55, -46.63], 13)
+  console.log('🗺️ Inicializando mapa...')
+  
+  map = L.map('map', { zoomControl: false }).setView([-23.55, -46.63], 12)
   
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles © Esri'
@@ -282,59 +265,50 @@ function initMap() {
   drawnItems = new L.FeatureGroup()
   map.addLayer(drawnItems)
   
-  // Configuração do Draw - APENAS POLÍGONO (retângulo removido)
   drawControl = new (L.Control as any).Draw({
     position: 'topright',
-    edit: { featureGroup: drawnItems },
+    edit: { featureGroup: drawnItems, remove: true },
     draw: {
       polygon: {
         shapeOptions: { color: '#ff4444', weight: 3, opacity: 0.7, fillOpacity: 0.2 },
         allowIntersection: false,
         drawError: { color: '#ff4444', message: t('map.drawError') }
       },
-      rectangle: false,
-      circle: false,
-      circlemarker: false,
-      marker: false,
-      polyline: false
+      rectangle: false, circle: false, circlemarker: false, marker: false, polyline: false
     }
   })
   map.addControl(drawControl)
   
-  // Evento principal - quando o usuário FINALIZA o desenho
-  map.on(L.Draw.Event.CREATED, function(e: any) {
+  map.on(L.Draw.Event.CREATED, (e: any) => {
+    console.log('✏️ Desenho finalizado!', e.layerType)
     const layer = e.layer
     
-    // Limpar desenhos anteriores
     drawnItems.clearLayers()
     drawnItems.addLayer(layer)
     
-    // Calcular métricas REAIS baseadas nas linhas dentro do polígono
     const metrics = calculateRealMetricsFromPolygon(layer)
     
     if (metrics) {
+      console.log('📤 Emitindo métricas para o MapaPage...')
       emit('update-metricas', metrics)
+    } else {
+      console.warn('⚠️ Nenhuma métrica encontrada para o polígono')
     }
   })
   
-  renderizarLinhas()
+  map.on('moveend', () => carregarDadosDebounced())
+  
+  carregarDados()
 }
 
-watch(() => props.filtros, () => {
+watch(() => props.filtros.ano, () => {
   if (map) {
-    limparMapa()
-    renderizarLinhas()
-    if (drawnItems) {
-      drawnItems.clearLayers()
-    }
+    lastLoadedBounds = null
+    carregarDados()
   }
-}, { deep: true })
-
-onMounted(() => {
-  nextTick(() => {
-    initMap()
-  })
 })
+
+onMounted(() => nextTick(() => initMap()))
 </script>
 
 <style scoped>
@@ -347,20 +321,33 @@ onMounted(() => {
   z-index: 1;
 }
 
-.torre-icon {
-  background: transparent;
-  border: none;
-  cursor: pointer;
+.loading-overlay {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: white;
+  z-index: 1002;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.torre-icon svg {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  transition: transform 0.2s ease;
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #1976d2;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-.torre-icon svg:hover {
-  transform: scale(1.15);
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .leaflet-draw-toolbar a {
   background-color: rgba(0, 0, 0, 0.7) !important;

@@ -1,4 +1,33 @@
 {
+  "Login": "Login",
+  "Cadastro": "Cadastro",
+  "home": {
+    "welcome": "Bem-vindo ao",
+    "title": "Enersigh",
+    "subtitle": "Sistema Inteligente de Monitoramento e Previsão de Indicadores de Energia",
+    "modules": {
+      "map": {
+        "title": "Mapa Geoespacial",
+        "description": "Visualize linhas de energia e indicadores interativos"
+      },
+      "forecast": {
+        "title": "Agente de Previsão",
+        "description": "Previsões inteligentes de indicadores DEC e FEC"
+      },
+      "users": {
+        "title": "Usuários",
+        "description": "Gerencie acesso e permissões do sistema"
+      },
+      "logs": {
+        "title": "Logs do Sistema",
+        "description": "Histórico completo de atividades e eventos"
+      },
+      "profile": {
+        "title": "Meu Perfil",
+        "description": "Gerencie suas informações e preferências"
+      }
+    }
+  },
   "sidebar": {
     "home": "Início",
     "map": "Mapa",
@@ -8,7 +37,8 @@
     "reserve": "Reserva",
     "language": "Idioma",
     "portuguese": "Português",
-    "english": "English"
+    "english": "English",
+    "logout": "Sair"
   },
   "filters": {
     "title": "Filtros do Mapa",
@@ -48,8 +78,7 @@
     "tower": "Torre",
     "transmission_tower": "Torre de Transmissão",
     "drawError": "Desenho inválido!"
-  }
-  ,
+  },
   "floating": {
     "headerTitle": "Detalhe do recorte selecionado",
     "expand": "Expandir",
@@ -86,5 +115,148 @@
     "sam": "SAM",
     "lossTechnical": "PERDAS TÉCNICAS",
     "lossNonTechnical": "PERDAS NÃO TÉCNICAS"
-  }
+  },
+  "legend": {
+    "title": "Classificação de Criticidade",
+    "green": {
+      "title": "🟢 Verde - Boa disponibilidade",
+      "description": "Rede saudável, sem restrições para novas conexões"
+    },
+    "orange": {
+      "title": "🟠 Laranja - Atenção necessária",
+      "description": "Rede com alguma limitação, requer monitoramento"
+    },
+    "red": {
+      "title": "🔴 Vermelho - Alta criticidade",
+      "description": "Rede saturada, necessidade de reforços"
+    },
+    "footer": "Baseado no Score de Criticidade (0-100%)"
+  },
+  "users": {
+    "title": "Gestão de Usuários",
+    "subtitle": "Gerencie os usuários do sistema",
+    "approved": "Usuários Aprovados",
+    "pending": "Pendentes",
+    "search": "Buscar usuários...",
+    "searchPending": "Buscar pendentes...",
+    "newUser": "Novo Usuário",
+    "name": "Nome",
+    "email": "E-mail",
+    "phone": "Telefone",
+    "role": "Função",
+    "date": "Data",
+    "actions": "Ações",
+    "anonymize": "Anonimizar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "approve": "Aprovar",
+    "reject": "Recusar",
+    "noUsers": "Nenhum usuário encontrado",
+    "noPending": "Nenhum usuário pendente",
+    "editUser": "Editar Usuário",
+    "fullName": "Nome completo",
+    "password": "Senha",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "roleUser": "Usuário",
+    "roleManager": "Gerente",
+    "roleAdmin": "Administrador",
+    "anonymous": "Usuário Anônimo",
+    "userApproved": "Usuário aprovado:",
+    "userRejected": "Usuário recusado:",
+    "userAnonymized": "Usuário anonimizado com sucesso",
+    "userDeleted": "Usuário excluído:",
+    "userUpdated": "Usuário atualizado com sucesso",
+    "userCreated": "Usuário criado com sucesso",
+    "emailExists": "E-mail já cadastrado",
+    "confirmReject": "Deseja recusar o cadastro de",
+    "confirmAnonymize": "Deseja anonimizar o usuário",
+    "confirmDelete": "Deseja excluir permanentemente o usuário"
+  },
+  "profile": {
+    "tabs": {
+      "info": "Informações Pessoais",
+      "security": "Segurança",
+      "consent": "Consentimento"
+    },
+    "currentPassword": "Senha Atual",
+    "newPassword": "Nova Senha",
+    "confirmNewPassword": "Confirmar Nova Senha",
+    "changePassword": "Alterar Senha",
+    "passwordsDoNotMatch": "As senhas não coincidem!",
+    "passwordMinLength": "A nova senha deve ter no mínimo 6 caracteres!",
+    "passwordChanged": "Senha alterada com sucesso!",
+    "infoUpdated": "Informações atualizadas com sucesso!",
+    "preferencesSaved": "Preferências de comunicação salvas!",
+    "accountDeleted": "Conta excluída com sucesso! Redirecionando...",
+    "termsAndConsent": "Termos e Consentimento",
+    "acceptTerms": "Li e aceito os",
+    "acceptPrivacy": "Li e aceito a",
+    "acceptCommunications": "Aceito receber comunicações sobre o sistema",
+    "termsOfUse": "Termos de Uso",
+    "privacyPolicy": "Política de Privacidade",
+    "requiredCannotUncheck": "Obrigatório - Não pode ser desmarcado",
+    "optional": "Opcional",
+    "revokeConsent": "Revogar Consentimento",
+    "revokeWarning": "Atenção: Ao revogar seu consentimento, sua conta será permanentemente excluída e você perderá imediatamente o acesso ao sistema. Esta ação não pode ser desfeita.",
+    "revokeAndDelete": "Revogar Consentimento e Excluir Conta",
+    "revokeConfirmation": "Você está prestes a REVOGAR seu consentimento e EXCLUIR PERMANENTEMENTE sua conta.",
+    "thisActionWill": "Esta ação irá:",
+    "removeAllData": "Remover todos os seus dados do sistema",
+    "revokeAccess": "Revogar imediatamente seu acesso à plataforma",
+    "deleteHistory": "Excluir permanentemente seu histórico de atividades",
+    "cannotUndo": "Não poderá ser desfeita",
+    "typeToConfirm": "Digite",
+    "confirmDeleteText": "EXCLUIR MINHA CONTA",
+    "confirmRevoke": "Sim, revogar consentimento e excluir conta",
+    "attention": "Atenção!",
+    "understood": "Entendi",
+    "termsOfUseTitle": "Termos de Uso - Enersigh",
+    "privacyPolicyTitle": "Política de Privacidade - Enersigh",
+    "termsSection1": "Aceitação dos Termos",
+    "termsSection1Text": "Ao acessar e usar o sistema Enersigh, você concorda em cumprir estes Termos de Uso.",
+    "termsSection2": "Uso do Sistema",
+    "termsSection2Text": "O sistema é destinado ao monitoramento e previsão de indicadores de energia. Você concorda em usar o sistema apenas para fins legais e autorizados.",
+    "termsSection3": "Dados e Privacidade",
+    "termsSection3Text": "Seus dados serão tratados conforme nossa Política de Privacidade. Você é responsável pela veracidade das informações fornecidas.",
+    "termsSection4": "Responsabilidades",
+    "termsSection4Text": "O Enersigh não se responsabiliza por decisões tomadas com base nos dados fornecidos pelo sistema sem validação adequada.",
+    "termsSection5": "Modificações",
+    "termsSection5Text": "Reservamo-nos o direito de modificar estes termos a qualquer momento, com notificação prévia.",
+    "termsSection6": "Cancelamento",
+    "termsSection6Text": "Você pode cancelar sua conta a qualquer momento, o que resultará na exclusão de seus dados.",
+    "privacySection1": "Coleta de Dados",
+    "privacySection1Text": "Coletamos informações como nome, email e dados de uso do sistema para melhorar nossa prestação de serviços.",
+    "privacySection2": "Uso das Informações",
+    "privacySection2Text": "Seus dados são utilizados exclusivamente para monitoramento e previsão de indicadores de energia.",
+    "privacySection3": "Compartilhamento",
+    "privacySection3Text": "Não compartilhamos seus dados pessoais com terceiros sem seu consentimento explícito.",
+    "privacySection4": "Segurança",
+    "privacySection4Text": "Implementamos medidas de segurança para proteger seus dados contra acesso não autorizado.",
+    "privacySection5": "Seus Direitos",
+    "privacySection5Text": "Você tem direito a acessar, corrigir ou solicitar a exclusão de seus dados a qualquer momento.",
+    "privacySection6": "Cookies",
+    "privacySection6Text": "Utilizamos cookies para melhorar sua experiência de navegação no sistema."
+  },
+  "forecast": {
+  "title": "Agente de Previsão",
+  "subtitle": "Previsões inteligentes de indicadores DEC e FEC",
+  "unitCode": "Código da Unidade",
+  "indicator": "Indicador",
+  "search": "Buscar",
+  "loading": "Carregando dados...",
+  "noData": "Nenhum dado encontrado para os filtros selecionados",
+  "tryAgain": "Tentar novamente",
+  "avgMAE": "MAE Médio",
+  "totalPredictions": "Total de Previsões",
+  "lastPrediction": "Última Previsão",
+  "trend": "Tendência",
+  "predictionTimeline": "Linha do Tempo de Previsões",
+  "actualMAE": "MAE Real",
+  "prediction": "Previsão",
+  "detailsTable": "Detalhes das Previsões",
+  "date": "Data",
+  "difference": "Diferença",
+  "value": "Valor"
+}
 }

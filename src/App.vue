@@ -1,15 +1,32 @@
-
 <template>
-  <AppSidebar :open="sidebarOpen" @toggle="handleToggle" />
-  <div class="sidebar-sensor" @mouseenter="onSensorEnter" @mouseleave="onSensorLeave"></div>
-  <div class="main-content">
+  <AppSidebar 
+    v-if="$route.path !== '/login' && $route.path !== '/cadastro'" 
+    :open="sidebarOpen" 
+    @toggle="handleToggle" 
+  />
+  
+  <div 
+    v-if="$route.path !== '/login' && $route.path !== '/cadastro'" 
+    class="sidebar-sensor" 
+    @mouseenter="onSensorEnter" 
+    @mouseleave="onSensorLeave"
+  ></div>
+  
+  <div :class="['main-content', { 
+    'no-sidebar': $route.path === '/login' || $route.path === '/cadastro',
+    'sidebar-open': sidebarOpen && $route.path !== '/login' && $route.path !== '/cadastro',
+    'sidebar-closed': !sidebarOpen && $route.path !== '/login' && $route.path !== '/cadastro'
+  }]">
     <router-view />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import AppSidebar from './components/AppSidebar.vue'
+
+const route = useRoute()
 const sidebarOpen = ref(true)
 
 function handleToggle() {
@@ -21,16 +38,62 @@ function onSensorEnter() {
 }
 
 function onSensorLeave() {
-  if (!sidebarOpen.value) return
-  // when mouse leaves the sensor area, if it was closed before, close it again
-  // we don't track manual state — keep it simple: close only if previously closed by toggle
+
 }
 </script>
 
 <style>
-body { margin: 0; font-family: 'Roboto', Arial, sans-serif; }
-.main-content { transition: all 0.2s ease; width: 100%; height: 100vh; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-/* invisible sensor strip on the far left to capture hover */
-.sidebar-sensor { position: fixed; left: 0; top: 0; bottom: 0; width: 8px; z-index: 2301; background: transparent }
+body { 
+  margin: 0; 
+  font-family: 'Roboto', Arial, sans-serif;
+  background: #0a0a0a;
+  overflow-x: hidden;
+}
+
+.main-content { 
+  transition: margin-left 0.25s ease-in-out; 
+  width: auto;
+  max-width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.main-content.sidebar-open {
+  margin-left: 260px;
+  max-width: calc(100% - 260px);
+}
+
+.main-content.sidebar-closed {
+  margin-left: 98px;
+  max-width: calc(100% - 98px);
+}
+
+.main-content.no-sidebar {
+  margin-left: 0 !important;
+  max-width: 100% !important;
+}
+
+.sidebar-sensor { 
+  position: fixed; 
+  left: 0; 
+  top: 0; 
+  bottom: 0; 
+  width: 8px; 
+  z-index: 2301; 
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .main-content.sidebar-open,
+  .main-content.sidebar-closed {
+    margin-left: 0;
+    max-width: 100%;
+  }
+}
 </style>

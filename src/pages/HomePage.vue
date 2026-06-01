@@ -129,7 +129,7 @@
     <div v-if="showModal" class="modal" @click.self="closeModal">
       <div class="modal-content">
         <span class="close" @click="closeModal">&times;</span>
-        <img src="/src/assets/filhoJuan.jpeg" alt="Imagem Modal" class="modal-image" />
+        <img src="/src/assets/chads.png" alt="Imagem Modal" class="modal-image" />
       </div>
     </div>
   </div>

@@ -41,9 +41,9 @@
               </svg>
             </div>
             <input 
-              type="text" 
-              v-model="credentials.username"
-              placeholder="Usuário"
+              type="email" 
+              v-model="credentials.email"
+              placeholder="E-mail"
               required
               class="login-input"
             />
@@ -105,6 +105,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import authUsecase from '../service/auth.usecase'
 
 const router = useRouter()
 const loading = ref(false)
@@ -112,7 +113,7 @@ const showPassword = ref(false)
 const rememberMe = ref(false)
 
 const credentials = ref({
-  username: '',
+  email: '',
   password: ''
 })
 
@@ -128,25 +129,24 @@ const handleImageError = (event: Event) => {
 
 const handleLogin = async () => {
   loading.value = true
-  
-  // Simular autenticação (substituir pela chamada real da API)
-  setTimeout(() => {
-    // Exemplo de validação simples
-    if (credentials.value.username === 'admin' && credentials.value.password === 'admin') {
-      // Salvar token/localStorage se "lembrar-me" estiver marcado
-      if (rememberMe.value) {
-        localStorage.setItem('user', credentials.value.username)
-      } else {
-        sessionStorage.setItem('user', credentials.value.username)
-      }
-      
-      // Redirecionar para home
-      router.push('/')
-    } else {
-      alert('Credenciais inválidas! Use admin/admin para teste.')
+  try {
+    const auth = await authUsecase.login(credentials.value.email, credentials.value.password)
+    if (!auth || !auth.token) {
+      alert('Falha ao autenticar. Verifique suas credenciais.')
+      loading.value = false
+      return
     }
+
+    authUsecase.persist(auth, rememberMe.value)
+
+    // reload to ensure interceptors pick token OR just navigate
+    router.push('/')
+  } catch (err: any) {
+    console.error('Login error', err)
+    alert(err?.response?.data?.message || 'Erro ao fazer login')
+  } finally {
     loading.value = false
-  }, 1500)
+  }
 }
 
 const getParticleStyle = (i: number) => {

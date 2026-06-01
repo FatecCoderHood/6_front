@@ -166,6 +166,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import usersApi from '../api/users.api'
 
 const router = useRouter()
 const loading = ref(false)
@@ -212,33 +213,22 @@ const handleCadastro = async () => {
 
   loading.value = true
 
-  setTimeout(() => {
-    // Verificar se usuário já existe
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const userExists = users.find((u: any) => u.email === formData.value.email)
-
-    if (userExists) {
-      alert('E-mail já cadastrado!')
-      loading.value = false
-      return
-    }
-
-    // Salvar novo usuário
-    const newUser = {
+  try {
+    const payload = {
       name: formData.value.name,
       email: formData.value.email,
       phone: formData.value.phone,
-      password: formData.value.password,
-      createdAt: new Date().toISOString()
+      password: formData.value.password
     }
-
-    users.push(newUser)
-    localStorage.setItem('users', JSON.stringify(users))
-
-    alert('Cadastro realizado com sucesso! Faça login para continuar.')
+    await usersApi.register(payload)
+    alert('Cadastro realizado com sucesso! Aguarde aprovação do administrador ou faça login quando disponível.')
     router.push('/login')
+  } catch (err: any) {
+    console.error('Erro no cadastro', err)
+    alert(err?.response?.data?.message || 'Erro ao cadastrar usuário')
+  } finally {
     loading.value = false
-  }, 1500)
+  }
 }
 
 const getParticleStyle = (i: number) => {

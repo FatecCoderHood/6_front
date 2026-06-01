@@ -1,3 +1,4 @@
+// router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
 import MapaPage from '../pages/MapaPage.vue'
 import HomePage from '../pages/HomePage.vue'
@@ -7,7 +8,11 @@ import LogsPage from '../pages/LogsPage.vue'
 import ReservaPage from '../pages/ReservaPage.vue'
 import LoginPage from '../pages/LoginPage.vue'  
 import CadastroPage from '../pages/CadastroPage.vue'
+import NotFoundPage from '../pages/NotFoundPage.vue'
+import MinhaConta from '../pages/MinhaConta.vue'
+import AgentePrevisao from '../pages/AgentePrevisao.vue'  // ADICIONE ESTA LINHA
 import i18n from '../i18n'
+import authUsecase from '../service/auth.usecase'
 
 const routes = [
   { 
@@ -17,7 +22,7 @@ const routes = [
     meta: { title: 'Login', requiresAuth: false }  
   },
   {
-  path: '/cadastro', 
+    path: '/cadastro', 
     name: 'Cadastro', 
     component: CadastroPage,
     meta: { title: 'Cadastro', requiresAuth: false }
@@ -35,29 +40,47 @@ const routes = [
     meta: { title: 'sidebar.map', requiresAuth: true }
   },
   { 
+    path: '/agente-previsao',  // ADICIONE ESTA ROTA
+    name: 'AgentePrevisao', 
+    component: AgentePrevisao,
+    meta: { title: 'Agente de Previsão', requiresAuth: true }
+  },
+  { 
     path: '/dashboard', 
     name: 'Dashboard', 
     component: DashboardPage,
-    meta: { title: 'sidebar.dashboard', requiresAuth: true }
+    meta: { title: 'sidebar.dashboard', requiresAuth: true, roles: ['admin'] }
   },
   { 
     path: '/usuarios', 
     name: 'Usuarios', 
     component: UsersPage,
-    meta: { title: 'sidebar.users', requiresAuth: true }
+    meta: { title: 'sidebar.users', requiresAuth: true, roles: ['admin'] }
   },
   { 
     path: '/logs', 
     name: 'Logs', 
     component: LogsPage,
-    meta: { title: 'sidebar.logs', requiresAuth: true }
+    meta: { title: 'sidebar.logs', requiresAuth: true, roles: ['admin'] }
   },
   { 
     path: '/reserva', 
     name: 'Reserva', 
     component: ReservaPage,
-    meta: { title: 'sidebar.reserve', requiresAuth: true }
+    meta: { title: 'sidebar.reserve', requiresAuth: true, roles: ['admin'] }
   },
+  {
+    path: '/minha-conta',
+    name: 'MinhaConta',
+    component: MinhaConta, 
+    meta: { title: 'Minha Conta', requiresAuth: true }
+  },
+  {
+    path: '/:pathMatch(.*)*', 
+    name: 'NotFound', 
+    component: NotFoundPage,
+    meta: { title: 'Página Não Encontrada', requiresAuth: false }
+  }
 ]
 
 const router = createRouter({
@@ -65,17 +88,12 @@ const router = createRouter({
   routes,
 })
 
-// FUNÇÃO PARA VERIFICAR AUTENTICAÇÃO
-const isAuthenticated = () => {
-  // Verifica se tem usuário logado no localStorage ou sessionStorage
-  const user = localStorage.getItem('user') || sessionStorage.getItem('user')
-  return !!user
-}
+// (autenticação verificada via authUsecase)
 
-// GUARD DE NAVEGAÇÃO (PROTEÇÃO DE ROTAS)
-router.beforeEach((to, _from, next) => {
-  // Atualizar título da página
-  const baseTitle = 'Enersight'
+// GUARD DE NAVEGAÇÃO
+router.beforeEach((to, _from) => {
+  const baseTitle = 'Enersigh'
+  
   if (to.meta && to.meta.title) {
     const translated = i18n.global.t(to.meta.title as string) as string
     document.title = `${translated} | ${baseTitle}`
@@ -85,20 +103,30 @@ router.beforeEach((to, _from, next) => {
     document.title = baseTitle
   }
   
-  // VERIFICAR AUTENTICAÇÃO
-  const auth = isAuthenticated()
-  
-  // Se a rota requer autenticação e usuário não está logado
+  const auth = authUsecase.isAuthenticated()
+
   if (to.meta.requiresAuth && !auth) {
-    next('/login')  // Redireciona para login
-  } 
-  // Se usuário está logado e tenta acessar login
-  else if (to.path === '/login' && auth) {
-    next('/')  // Redireciona para home
+    return '/login'
   }
-  else {
-    next()  // Permite acesso
+
+  // Prevent logged user from visiting login/register
+  if ((to.path === '/login' || to.path === '/cadastro') && auth) {
+    return '/'
   }
+
+  // Role based guard if route defines roles
+  const requiredRoles: string[] = (to.meta && (to.meta as any).roles) || []
+  if (requiredRoles.length > 0 && auth) {
+    // check if user has at least one required role
+    const allowed = requiredRoles.some(r => authUsecase.hasRole(r))
+    if (!allowed) {
+      // redirect to home if not authorized
+      return '/'
+    }
+  }
+
+  // returning undefined continues the navigation
+  return undefined
 })
 
 export default router

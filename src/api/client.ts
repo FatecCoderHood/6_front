@@ -12,8 +12,21 @@ class ApiClient {
       headers: API_CONFIG.HEADERS
     })
 
+    // Attach auth token from storage if available
     this.client.interceptors.request.use(
       (config) => {
+        try {
+          const raw = localStorage.getItem('auth') || sessionStorage.getItem('auth')
+          if (raw) {
+            const auth = JSON.parse(raw)
+            if (auth && auth.token) {
+              config.headers = config.headers || {}
+              config.headers.Authorization = `Bearer ${auth.token}`
+            }
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
         console.log(`📡 ${config.method?.toUpperCase()} ${config.url}`)
         return config
       },

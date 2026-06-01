@@ -212,7 +212,8 @@ import {
   mdiAccountCircle,
   mdiAccountMultiple
 } from '@mdi/js'
-import { getAllUsers } from '../service/mockData'
+import { getAllUsers, approveUser as mockApproveUser, rejectUser as mockRejectUser } from '../service/mockData'
+import usersApi from '../api/users.api'
 
 const { t } = useI18n()
 
@@ -286,41 +287,24 @@ const getRoleName = (role: string) => {
   }
 }
 
-const loadUsers = () => {
-  // FORÇAR CARREGAMENTO DOS MOCKS - LIMPA O LOCALSTORAGE PRIMEIRO
-  const forceMock = true; // Mude para false quando quiser voltar a usar o localStorage
-  
-  if (forceMock) {
-    localStorage.removeItem('users')
-
-    import('../service/mockData').then(module => {
-      const allUsers = module.getAllUsers()
-      console.log('✅ Mocks carregados:', allUsers.length, 'usuários')
-      console.log('📋 Aprovados:', allUsers.filter(u => u.status === 'approved').length)
-      console.log('⏳ Pendentes:', allUsers.filter(u => u.status === 'pending').length)
-      
-      users.value = allUsers.map((user: any) => ({
-        ...user,
-        phone: user.phone || '—'
-      }))
-      saveUsers()
-    }).catch(err => {
-      console.error('❌ Erro ao carregar mocks:', err)
-      loadManualMocks()
-    })
-  } else {
-    const storedUsers = localStorage.getItem('users')
-    if (storedUsers) {
-      const allUsers = JSON.parse(storedUsers)
-      users.value = allUsers.map((user: any) => ({
-        ...user,
-        status: user.status || 'approved',
-        role: user.role || 'user',
-        phone: user.phone || '—'
-      }))
-    } else {
-      loadManualMocks()
-    }
+const loadUsers = async () => {
+  try {
+    const apiUsers = await usersApi.getAll()
+    users.value = apiUsers.map((u: any) => ({
+      ...u,
+      status: u.status || 'approved',
+      role: u.role || 'user',
+      phone: u.phone || '—'
+    }))
+    console.log('✅ Users loaded from API:', users.value.length)
+  } catch (err) {
+    console.warn('⚠️ Could not load users from API, falling back to mocks', err)
+    const allUsers = getAllUsers()
+    users.value = allUsers.map((user: any) => ({
+      ...user,
+      phone: user.phone || '—'
+    }))
+    saveUsers()
   }
 }
 
@@ -328,20 +312,37 @@ const saveUsers = () => {
   localStorage.setItem('users', JSON.stringify(users.value))
 }
 
-const approveUser = (user: User) => {
-  user.status = 'approved'
-  saveUsers()
-  alert(`✅ ${t('users.userApproved')} ${user.name}!`)
+const approveUser = async (user: User) => {
+  if (!user || !user.id) return
+  try {
+    await usersApi.approveUser(String(user.id))
+    user.status = 'approved'
+    saveUsers()
+    alert(`✅ ${t('users.userApproved')} ${user.name}!`)
+  } catch (err) {
+    console.warn('Approve failed, trying mock flow', err)
+    mockApproveUser((user as any).id)
+    user.status = 'approved'
+    saveUsers()
+    alert(`✅ ${t('users.userApproved')} ${user.name}!`)
+  }
 }
 
-const rejectUser = (user: User) => {
-  if (confirm(`❌ ${t('users.confirmReject')} ${user.name}?`)) {
+const rejectUser = async (user: User) => {
+  if (!confirm(`❌ ${t('users.confirmReject')} ${user.name}?`)) return
+  try {
+    await usersApi.deleteUser(String((user as any).id || user.email))
     const index = users.value.findIndex(u => u.email === user.email)
-    if (index !== -1) {
-      users.value.splice(index, 1)
-      saveUsers()
-      alert(`${t('users.userRejected')} ${user.name}!`)
-    }
+    if (index !== -1) users.value.splice(index, 1)
+    saveUsers()
+    alert(`${t('users.userRejected')} ${user.name}!`)
+  } catch (err) {
+    console.warn('Delete via API failed, trying mock reject', err)
+    mockRejectUser((user as any).id)
+    const index = users.value.findIndex(u => u.email === user.email)
+    if (index !== -1) users.value.splice(index, 1)
+    saveUsers()
+    alert(`${t('users.userRejected')} ${user.name}!`)
   }
 }
 
@@ -355,14 +356,20 @@ const anonymizeUser = (user: User) => {
   }
 }
 
-const deleteUser = (user: User) => {
-  if (confirm(`⚠️ ${t('users.confirmDelete')} ${user.name}?`)) {
+const deleteUser = async (user: User) => {
+  if (!confirm(`⚠️ ${t('users.confirmDelete')} ${user.name}?`)) return
+  try {
+    await usersApi.deleteUser(String((user as any).id || user.email))
     const index = users.value.findIndex(u => u.email === user.email)
-    if (index !== -1) {
-      users.value.splice(index, 1)
-      saveUsers()
-      alert(`✅ ${t('users.userDeleted')} ${user.name}!`)
-    }
+    if (index !== -1) users.value.splice(index, 1)
+    saveUsers()
+    alert(`✅ ${t('users.userDeleted')} ${user.name}!`)
+  } catch (err) {
+    console.warn('Delete via API failed, falling back to local delete', err)
+    const index = users.value.findIndex(u => u.email === user.email)
+    if (index !== -1) users.value.splice(index, 1)
+    saveUsers()
+    alert(`✅ ${t('users.userDeleted')} ${user.name}!`)
   }
 }
 
@@ -401,7 +408,7 @@ const closeUserModal = () => {
   }
 }
 
-const saveUser = () => {
+const saveUser = async () => {
   if (editingUser.value) {
     const index = users.value.findIndex(u => u.email === userForm.value.email)
     if (index !== -1) {
@@ -420,20 +427,39 @@ const saveUser = () => {
       alert(`❌ ${t('users.emailExists')}!`)
       return
     }
-    
-    const newUser: User = {
-      name: userForm.value.name,
-      email: userForm.value.email,
-      phone: userForm.value.phone || '—',
-      password: userForm.value.password,
-      role: userForm.value.role,
-      status: 'approved',
-      createdAt: new Date().toISOString()
+    // Try to register via API; fallback to local create on failure
+    try {
+      const payload = {
+        name: userForm.value.name,
+        email: userForm.value.email,
+        phone: userForm.value.phone,
+        password: userForm.value.password,
+        role: userForm.value.role
+      }
+      const created = await (usersApi.register(payload) as Promise<any>)
+      const c: any = created || {}
+      users.value.push({
+        ...c,
+        phone: c.phone || userForm.value.phone || '—',
+        role: c.role || userForm.value.role,
+        status: c.status || 'approved'
+      })
+      saveUsers()
+      alert(`✅ ${t('users.userCreated')}!`)
+    } catch (err) {
+      const newUser: User = {
+        name: userForm.value.name,
+        email: userForm.value.email,
+        phone: userForm.value.phone || '—',
+        password: userForm.value.password,
+        role: userForm.value.role,
+        status: 'approved',
+        createdAt: new Date().toISOString()
+      }
+      users.value.push(newUser)
+      saveUsers()
+      alert(`✅ ${t('users.userCreated')}! (local fallback)`)
     }
-    
-    users.value.push(newUser)
-    saveUsers()
-    alert(`✅ ${t('users.userCreated')}!`)
   }
   closeUserModal()
 }

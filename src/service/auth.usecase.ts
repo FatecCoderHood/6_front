@@ -1,58 +1,107 @@
-import authApi from '../api/auth.api'
+// src/service/auth.usecase.ts
+import { MockUsers, type MockUser } from './UsersMock'
+import LogsMock from './LogsMock'
 
-interface AuthStore {
-  token: string
-  user: any
-}
+class AuthUsecase {
+  private tokenKey = 'auth_token'
+  private userKey = 'user_data'
 
-const AUTH_KEY = 'auth'
-
-export const authUsecase = {
-  async login(username: string, password: string) {
-    const resp = await authApi.login({ username, password })
-    const token = resp.token || (resp as any).accessToken || ''
-    const user = resp.user || (resp as any).user || (resp as any).principal || null
-
-    const auth: AuthStore = { token, user }
-    return auth
-  },
-
-  persist(auth: AuthStore, remember = false) {
-    const raw = JSON.stringify(auth)
-    if (remember) {
-      localStorage.setItem(AUTH_KEY, raw)
-    } else {
-      sessionStorage.setItem(AUTH_KEY, raw)
+  async login(email: string, password: string): Promise<any> {
+    const user = MockUsers.authenticate(email, password)
+    
+    if (user) {
+      LogsMock.registerAction(
+        user.uuid,
+        user.name,
+        user.role,
+        'Login',
+        'login',
+        undefined,
+        '127.0.0.1'
+      )
+      
+      return {
+        token: `fake-jwt-token-${user.id}`,
+        user: {
+          id: user.id,
+          uuid: user.uuid,        // ← ADICIONE O UUID AQUI
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      }
     }
-  },
-
-  clear() {
-    localStorage.removeItem(AUTH_KEY)
-    sessionStorage.removeItem(AUTH_KEY)
-  },
-
-  getAuth(): AuthStore | null {
-    const raw = localStorage.getItem(AUTH_KEY) || sessionStorage.getItem(AUTH_KEY)
-    if (!raw) return null
-    try {
-      return JSON.parse(raw)
-    } catch (e) {
-      return null
+    
+    const pendingUser = MockUsers.getByEmail(email)
+    if (pendingUser && pendingUser.status === 'pending') {
+      throw new Error('CONTA_PENDENTE: Seu cadastro está aguardando aprovação do administrador.')
     }
-  },
+    
+    throw new Error('Credenciais inválidas')
+  }
+
+  persist(authData: any, remember: boolean = false) {
+    const storage = remember ? localStorage : sessionStorage
+    storage.setItem(this.tokenKey, authData.token)
+    storage.setItem(this.userKey, JSON.stringify(authData.user))
+  }
 
   isAuthenticated(): boolean {
-    return !!this.getAuth()
-  },
+    const token = localStorage.getItem(this.tokenKey) || sessionStorage.getItem(this.tokenKey)
+    return !!token
+  }
 
-  hasRole(role: string): boolean {
-    const auth = this.getAuth()
-    if (!auth || !auth.user) return false
-    const roles: string[] = auth.user.roles || auth.user.authorities || auth.user.authority || []
-    // normalize
-    const normalized = roles.map((r: string) => r.replace(/^ROLE_/, '').toLowerCase())
-    return normalized.includes(role.toLowerCase()) || normalized.includes('admin')
+  getUserRole(): string {
+    const userStr = localStorage.getItem(this.userKey) || sessionStorage.getItem(this.userKey)
+    if (!userStr) return 'user'
+    
+    try {
+      const user = JSON.parse(userStr)
+      return user.role || 'user'
+    } catch {
+      return 'user'
+    }
+  }
+
+  getCurrentUser(): any {
+    const userStr = localStorage.getItem(this.userKey) || sessionStorage.getItem(this.userKey)
+    if (!userStr) return null
+    
+    try {
+      return JSON.parse(userStr)
+    } catch {
+      return null
+    }
+  }
+
+  getCurrentUserUuid(): string | null {
+    const user = this.getCurrentUser()
+    return user?.uuid || null
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem(this.tokenKey) || sessionStorage.getItem(this.tokenKey)
+  }
+
+  logout() {
+    const currentUser = this.getCurrentUser()
+    if (currentUser && currentUser.uuid) {
+      LogsMock.registerAction(
+        currentUser.uuid,
+        currentUser.name,
+        currentUser.role,
+        'Logout',
+        'logout',
+        undefined,
+        '127.0.0.1'
+      )
+    }
+    
+    localStorage.removeItem(this.tokenKey)
+    localStorage.removeItem(this.userKey)
+    sessionStorage.removeItem(this.tokenKey)
+    sessionStorage.removeItem(this.userKey)
   }
 }
 
-export default authUsecase
+export default new AuthUsecase()

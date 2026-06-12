@@ -5,7 +5,6 @@
       <p class="page-subtitle">{{ t('users.subtitle') }}</p>
     </div>
 
-    <!-- Tabs -->
     <div class="tabs-container">
       <button 
         @click="activeTab = 'approved'" 
@@ -56,15 +55,15 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredApprovedUsers" :key="user.email">
+            <tr v-for="user in filteredApprovedUsers" :key="user.id">
               <td>
                 <div class="user-info">
                   <div class="user-avatar" v-html="svg(mdiAccountCircle)"></div>
                   <span class="user-name">{{ user.name }}</span>
                 </div>
               </td>
-              <td class="user-email" :title="user.email">{{ user.email }}</td>
-              <td class="user-phone">{{ user.phone || '—' }}</td>
+              <td class="col-email" :title="user.email">{{ user.email }}</td>
+              <td class="col-phone">{{ user.phone || '—' }}</td>
               <td>
                 <span :class="['role-badge', getRoleClass(user.role)]">
                   {{ getRoleName(user.role) }}
@@ -73,13 +72,10 @@
               <td>{{ formatDate(user.createdAt) }}</td>
               <td>
                 <div class="action-buttons">
-                  <button class="action-btn anonymize" @click="anonymizeUser(user)" :title="t('users.anonymize')">
-                    <span v-html="svg(mdiAccountOff)"></span>
-                  </button>
                   <button class="action-btn edit" @click="openUserModal(user)" :title="t('users.edit')">
                     <span v-html="svg(mdiPencil)"></span>
                   </button>
-                  <button class="action-btn delete" @click="deleteUser(user)" :title="t('users.delete')">
+                  <button class="action-btn delete" @click="softDeleteUser(user)" :title="t('users.delete')">
                     <span v-html="svg(mdiDelete)"></span>
                   </button>
                 </div>
@@ -122,17 +118,17 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredPendingUsers" :key="user.email">
+            <tr v-for="user in filteredPendingUsers" :key="user.id">
               <td>
                 <div class="user-info">
                   <div class="user-avatar" v-html="svg(mdiAccountClock)"></div>
                   <span class="user-name">{{ user.name }}</span>
                 </div>
               </td>
-              <td class="user-email" :title="user.email">{{ user.email }}</td>
-              <td class="user-phone">{{ user.phone || '—' }}</td>
-              <td>{{ formatDate(user.createdAt) }}</td>
-              <td>
+              <td class="col-email-pending" :title="user.email">{{ user.email }}</td>
+              <td class="col-phone-pending">{{ user.phone || '—' }}</td>
+              <td class="col-date-pending">{{ formatDate(user.createdAt) }}</td>
+              <td class="col-actions-pending">
                 <div class="action-buttons">
                   <button class="action-btn approve" @click="approveUser(user)" :title="t('users.approve')">
                     <span v-html="svg(mdiCheckCircle)"></span>
@@ -171,6 +167,10 @@
             <input type="email" v-model="userForm.email" required class="form-input" />
           </div>
           <div class="form-group">
+            <label>UUID</label>
+            <input type="text" v-model="userForm.uuid" disabled class="form-input" />
+          </div>
+          <div class="form-group">
             <label>{{ t('users.phone') }}</label>
             <input type="tel" v-model="userForm.phone" class="form-input" />
           </div>
@@ -178,7 +178,6 @@
             <label>{{ t('users.role') }} *</label>
             <select v-model="userForm.role" required class="form-select">
               <option value="user">{{ t('users.roleUser') }}</option>
-              <option value="manager">{{ t('users.roleManager') }}</option>
               <option value="admin">{{ t('users.roleAdmin') }}</option>
             </select>
           </div>
@@ -193,12 +192,24 @@
         </form>
       </div>
     </div>
+
+    <ConfirmModal
+      :visible="showConfirmModal"
+      :type="confirmModalType"
+      :title="confirmModalTitle"
+      :message="confirmModalMessage"
+      :confirm-text="confirmModalConfirmText"
+      @confirm="handleConfirmAction"
+      @cancel="closeConfirmModal"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '../composables/useToast'
+import ConfirmModal from '../components/ConfirmModal.vue'
 import { 
   mdiAccountCheck, 
   mdiAccountClock, 
@@ -206,23 +217,26 @@ import {
   mdiPlus, 
   mdiPencil, 
   mdiDelete, 
-  mdiAccountOff,
   mdiCheckCircle,
   mdiCloseCircle,
   mdiAccountCircle,
   mdiAccountMultiple
 } from '@mdi/js'
-import { getAllUsers, approveUser as mockApproveUser, rejectUser as mockRejectUser } from '../service/mockData'
-import usersApi from '../api/users.api'
+import { MockUsers } from '../service/UsersMock'
+import LogsMock from '../service/LogsMock'
+import authUsecase from '../service/auth.usecase'
 
 const { t } = useI18n()
+const { success, error, warning, info } = useToast()
 
 interface User {
+  id: number
+  uuid: string
   name: string
   email: string
   phone: string
   password?: string
-  role: string
+  role: 'admin' | 'user'
   status: 'approved' | 'pending'
   createdAt: string
 }
@@ -232,24 +246,29 @@ const searchApproved = ref('')
 const searchPending = ref('')
 const showUserModal = ref(false)
 const editingUser = ref(false)
+const editingUserId = ref<number | null>(null)
+
+const showConfirmModal = ref(false)
+const confirmModalType = ref<'approve' | 'reject' | 'delete' | 'warning'>('warning')
+const confirmModalTitle = ref('')
+const confirmModalMessage = ref('')
+const confirmModalConfirmText = ref('Confirmar')
+let pendingAction: (() => void) | null = null
+let pendingUser: User | null = null
 
 const userForm = ref({
   name: '',
+  uuid: '',
   email: '',
   phone: '',
-  role: 'user',
+  role: 'user' as 'admin' | 'user',
   password: ''
 })
 
 const users = ref<User[]>([])
 
-const approvedUsers = computed(() => 
-  users.value.filter(user => user.status === 'approved')
-)
-
-const pendingUsers = computed(() => 
-  users.value.filter(user => user.status === 'pending')
-)
+const approvedUsers = computed(() => users.value.filter(user => user.status === 'approved'))
+const pendingUsers = computed(() => users.value.filter(user => user.status === 'pending'))
 
 const filteredApprovedUsers = computed(() => 
   approvedUsers.value.filter(user => 
@@ -271,113 +290,135 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-const getRoleClass = (role: string) => {
-  switch(role) {
-    case 'admin': return 'role-admin'
-    case 'manager': return 'role-manager'
-    default: return 'role-user'
+const getRoleClass = (role: string) => role === 'admin' ? 'role-admin' : 'role-user'
+const getRoleName = (role: string) => role === 'admin' ? t('users.roleAdmin') : t('users.roleUser')
+
+const loadUsers = () => {
+  const allUsers = MockUsers.getAll(false)
+  users.value = allUsers.map(user => ({
+    id: user.id,
+    uuid: user.uuid,
+    name: user.name,
+    email: user.email,
+    phone: user.phone || '—',
+    role: user.role,
+    status: user.status,
+    createdAt: user.createdAt
+  }))
+}
+
+const openConfirmModal = (type: 'approve' | 'reject' | 'delete', user: User) => {
+  confirmModalType.value = type
+  pendingUser = user
+  
+  switch(type) {
+    case 'approve':
+      confirmModalTitle.value = 'Aprovar Usuário'
+      confirmModalMessage.value = `Tem certeza que deseja APROVAR o usuário "${user.name}"?`
+      confirmModalConfirmText.value = 'Aprovar'
+      pendingAction = () => executeApprove()
+      break
+    case 'reject':
+      confirmModalTitle.value = 'Recusar Usuário'
+      confirmModalMessage.value = `Tem certeza que deseja RECUSAR o usuário "${user.name}"?\n\nEsta ação irá remover o usuário do sistema permanentemente.`
+      confirmModalConfirmText.value = 'Recusar'
+      pendingAction = () => executeReject()
+      break
+    case 'delete':
+      confirmModalTitle.value = 'Excluir Usuário'
+      confirmModalMessage.value = `Tem certeza que deseja EXCLUIR o usuário "${user.name}"?\n\n⚠️ Esta ação irá apenas ocultar o usuário da lista. Seus dados permanecem no sistema por questões de auditoria.`
+      confirmModalConfirmText.value = 'Excluir'
+      pendingAction = () => executeSoftDelete()
+      break
+  }
+  showConfirmModal.value = true
+}
+
+const closeConfirmModal = () => {
+  showConfirmModal.value = false
+  pendingAction = null
+  pendingUser = null
+}
+
+const handleConfirmAction = () => {
+  if (pendingAction) pendingAction()
+  closeConfirmModal()
+}
+
+const executeApprove = () => {
+  if (!pendingUser) return
+  const updated = MockUsers.approve(pendingUser.id)
+  if (updated) {
+    loadUsers()
+    const currentUser = authUsecase.getCurrentUser()
+    if (currentUser) {
+      LogsMock.registerAction(
+        currentUser.uuid,
+        currentUser.name,
+        currentUser.role,
+        'Aprovação de Usuário',
+        'approve',
+        pendingUser.uuid,
+        '127.0.0.1'
+      )
+    }
+    success(`${pendingUser.name} foi aprovado com sucesso!`, 'Usuário Aprovado')
   }
 }
 
-const getRoleName = (role: string) => {
-  switch(role) {
-    case 'admin': return t('users.roleAdmin')
-    case 'manager': return t('users.roleManager')
-    default: return t('users.roleUser')
+const executeReject = () => {
+  if (!pendingUser) return
+  const deleted = MockUsers.hardDelete(pendingUser.id)
+  if (deleted) {
+    loadUsers()
+    const currentUser = authUsecase.getCurrentUser()
+    if (currentUser) {
+      LogsMock.registerAction(
+        currentUser.uuid,
+        currentUser.name,
+        currentUser.role,
+        'Recusa de Usuário',
+        'reject',
+        pendingUser.uuid,
+        '127.0.0.1'
+      )
+    }
+    warning(`${pendingUser.name} foi recusado e removido do sistema.`, 'Usuário Recusado')
   }
 }
 
-const loadUsers = async () => {
-  try {
-    const apiUsers = await usersApi.getAll()
-    users.value = apiUsers.map((u: any) => ({
-      ...u,
-      status: u.status || 'approved',
-      role: u.role || 'user',
-      phone: u.phone || '—'
-    }))
-    console.log('✅ Users loaded from API:', users.value.length)
-  } catch (err) {
-    console.warn('⚠️ Could not load users from API, falling back to mocks', err)
-    const allUsers = getAllUsers()
-    users.value = allUsers.map((user: any) => ({
-      ...user,
-      phone: user.phone || '—'
-    }))
-    saveUsers()
+const executeSoftDelete = () => {
+  if (!pendingUser) return
+  const updated = MockUsers.softDelete(pendingUser.id)
+  if (updated) {
+    loadUsers()
+    const currentUser = authUsecase.getCurrentUser()
+    if (currentUser) {
+      LogsMock.registerAction(
+        currentUser.uuid,
+        currentUser.name,
+        currentUser.role,
+        'Exclusão de Usuário',
+        'delete',
+        pendingUser.uuid,
+        '127.0.0.1'
+      )
+    }
+    info(`${pendingUser.name} foi excluído logicamente.`, 'Usuário Excluído')
   }
 }
 
-const saveUsers = () => {
-  localStorage.setItem('users', JSON.stringify(users.value))
-}
-
-const approveUser = async (user: User) => {
-  if (!user || !user.id) return
-  try {
-    await usersApi.approveUser(String(user.id))
-    user.status = 'approved'
-    saveUsers()
-    alert(`✅ ${t('users.userApproved')} ${user.name}!`)
-  } catch (err) {
-    console.warn('Approve failed, trying mock flow', err)
-    mockApproveUser((user as any).id)
-    user.status = 'approved'
-    saveUsers()
-    alert(`✅ ${t('users.userApproved')} ${user.name}!`)
-  }
-}
-
-const rejectUser = async (user: User) => {
-  if (!confirm(`❌ ${t('users.confirmReject')} ${user.name}?`)) return
-  try {
-    await usersApi.deleteUser(String((user as any).id || user.email))
-    const index = users.value.findIndex(u => u.email === user.email)
-    if (index !== -1) users.value.splice(index, 1)
-    saveUsers()
-    alert(`${t('users.userRejected')} ${user.name}!`)
-  } catch (err) {
-    console.warn('Delete via API failed, trying mock reject', err)
-    mockRejectUser((user as any).id)
-    const index = users.value.findIndex(u => u.email === user.email)
-    if (index !== -1) users.value.splice(index, 1)
-    saveUsers()
-    alert(`${t('users.userRejected')} ${user.name}!`)
-  }
-}
-
-const anonymizeUser = (user: User) => {
-  if (confirm(`🔒 ${t('users.confirmAnonymize')} ${user.name}?`)) {
-    user.name = t('users.anonymous')
-    user.phone = '—'
-    user.email = `anonimo_${Date.now()}@removido.com`
-    saveUsers()
-    alert(`✅ ${t('users.userAnonymized')}!`)
-  }
-}
-
-const deleteUser = async (user: User) => {
-  if (!confirm(`⚠️ ${t('users.confirmDelete')} ${user.name}?`)) return
-  try {
-    await usersApi.deleteUser(String((user as any).id || user.email))
-    const index = users.value.findIndex(u => u.email === user.email)
-    if (index !== -1) users.value.splice(index, 1)
-    saveUsers()
-    alert(`✅ ${t('users.userDeleted')} ${user.name}!`)
-  } catch (err) {
-    console.warn('Delete via API failed, falling back to local delete', err)
-    const index = users.value.findIndex(u => u.email === user.email)
-    if (index !== -1) users.value.splice(index, 1)
-    saveUsers()
-    alert(`✅ ${t('users.userDeleted')} ${user.name}!`)
-  }
-}
+const approveUser = (user: User) => openConfirmModal('approve', user)
+const rejectUser = (user: User) => openConfirmModal('reject', user)
+const softDeleteUser = (user: User) => openConfirmModal('delete', user)
 
 const openUserModal = (user?: User) => {
   if (user) {
     editingUser.value = true
+    editingUserId.value = user.id
     userForm.value = {
       name: user.name,
+      uuid: user.uuid,
       email: user.email,
       phone: user.phone === '—' ? '' : user.phone,
       role: user.role,
@@ -385,8 +426,10 @@ const openUserModal = (user?: User) => {
     }
   } else {
     editingUser.value = false
+    editingUserId.value = null
     userForm.value = {
       name: '',
+      uuid: '',
       email: '',
       phone: '',
       role: 'user',
@@ -399,8 +442,10 @@ const openUserModal = (user?: User) => {
 const closeUserModal = () => {
   showUserModal.value = false
   editingUser.value = false
+  editingUserId.value = null
   userForm.value = {
     name: '',
+    uuid: '',
     email: '',
     phone: '',
     role: 'user',
@@ -409,57 +454,65 @@ const closeUserModal = () => {
 }
 
 const saveUser = async () => {
-  if (editingUser.value) {
-    const index = users.value.findIndex(u => u.email === userForm.value.email)
-    if (index !== -1) {
-      users.value[index] = {
-        ...users.value[index],
-        name: userForm.value.name,
-        phone: userForm.value.phone || '—',
-        role: userForm.value.role
+  const currentUser = authUsecase.getCurrentUser()
+  
+  if (editingUser.value && editingUserId.value) {
+    const updated = MockUsers.update(editingUserId.value, {
+      name: userForm.value.name,
+      phone: userForm.value.phone,
+      role: userForm.value.role
+    })
+    if (updated) {
+      loadUsers()
+      if (currentUser) {
+        LogsMock.registerAction(
+          currentUser.uuid,
+          currentUser.name,
+          currentUser.role,
+          'Edição de Usuário',
+          'update',
+          userForm.value.uuid,
+          '127.0.0.1'
+        )
       }
-      saveUsers()
-      alert(`✅ ${t('users.userUpdated')}!`)
+      success('As alterações foram salvas com sucesso!', 'Usuário Atualizado')
     }
   } else {
-    const userExists = users.value.some(u => u.email === userForm.value.email)
-    if (userExists) {
-      alert(`❌ ${t('users.emailExists')}!`)
+    const existing = MockUsers.getByEmail(userForm.value.email)
+    if (existing) {
+      error('Já existe um usuário cadastrado com este e-mail.', 'E-mail Existente')
       return
     }
-    // Try to register via API; fallback to local create on failure
-    try {
-      const payload = {
-        name: userForm.value.name,
-        email: userForm.value.email,
-        phone: userForm.value.phone,
-        password: userForm.value.password,
-        role: userForm.value.role
-      }
-      const created = await (usersApi.register(payload) as Promise<any>)
-      const c: any = created || {}
-      users.value.push({
-        ...c,
-        phone: c.phone || userForm.value.phone || '—',
-        role: c.role || userForm.value.role,
-        status: c.status || 'approved'
-      })
-      saveUsers()
-      alert(`✅ ${t('users.userCreated')}!`)
-    } catch (err) {
-      const newUser: User = {
-        name: userForm.value.name,
-        email: userForm.value.email,
-        phone: userForm.value.phone || '—',
-        password: userForm.value.password,
-        role: userForm.value.role,
-        status: 'approved',
-        createdAt: new Date().toISOString()
-      }
-      users.value.push(newUser)
-      saveUsers()
-      alert(`✅ ${t('users.userCreated')}! (local fallback)`)
+    
+    if (!userForm.value.password || userForm.value.password.length < 6) {
+      warning('A senha deve ter no mínimo 6 caracteres.', 'Senha Inválida')
+      return
     }
+    
+    const newUser = MockUsers.create({
+      name: userForm.value.name,
+      email: userForm.value.email,
+      password: userForm.value.password,
+      phone: userForm.value.phone,
+      role: userForm.value.role,
+      termsAccepted: true,
+      privacyAccepted: true,
+      communicationsAccepted: false
+    })
+    loadUsers()
+    
+    if (currentUser) {
+      LogsMock.registerAction(
+        currentUser.uuid,
+        currentUser.name,
+        currentUser.role,
+        'Criação de Usuário',
+        'create',
+        newUser.uuid,
+        '127.0.0.1'
+      )
+    }
+    success(`O usuário ${userForm.value.name} foi criado com sucesso!`, 'Usuário Criado')
   }
   closeUserModal()
 }
@@ -506,7 +559,6 @@ const svg = (path: string, size = 16) => {
   font-size: 0.8rem;
 }
 
-/* Tabs */
 .tabs-container {
   display: flex;
   gap: 0.5rem;
@@ -556,7 +608,6 @@ const svg = (path: string, size = 16) => {
   font-weight: 600;
 }
 
-/* Table Container */
 .table-container {
   background: rgba(10, 10, 10, 0.6);
   backdrop-filter: blur(10px);
@@ -631,7 +682,6 @@ const svg = (path: string, size = 16) => {
   box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
 }
 
-/* Table Wrapper - ESSENCIAL PARA O SCROLL */
 .table-wrapper {
   overflow-x: auto;
   width: 100%;
@@ -639,25 +689,22 @@ const svg = (path: string, size = 16) => {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Tabela - AGORA COM LARGURA CONTROLADA */
 .users-table {
   width: 100%;
-  min-width: 700px;
+  min-width: 800px;
   max-width: 100%;
   border-collapse: collapse;
   font-size: 0.8rem;
   table-layout: fixed;
 }
 
-/* Larguras específicas para cada coluna */
 .col-name { width: 18%; }
-.col-email { width: 22%; }
+.col-email { width: 25%; }
 .col-phone { width: 15%; }
 .col-role { width: 10%; }
 .col-date { width: 15%; }
-.col-actions { width: 20%; }
+.col-actions { width: 17%; }
 
-/* Para tabela de pendentes (sem role) */
 .col-name-pending { width: 22%; }
 .col-email-pending { width: 28%; }
 .col-phone-pending { width: 18%; }
@@ -706,13 +753,6 @@ const svg = (path: string, size = 16) => {
   overflow-wrap: break-word;
 }
 
-.user-email,
-.user-phone {
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
-
-/* Role Badges */
 .role-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -727,17 +767,11 @@ const svg = (path: string, size = 16) => {
   color: #ff4444;
 }
 
-.role-manager {
-  background: rgba(255, 215, 0, 0.2);
-  color: #FFD700;
-}
-
 .role-user {
   background: rgba(33, 150, 243, 0.2);
   color: #2196f3;
 }
 
-/* Action Buttons */
 .action-buttons {
   display: flex;
   gap: 0.3rem;
@@ -760,12 +794,6 @@ const svg = (path: string, size = 16) => {
 .action-btn svg {
   width: 14px;
   height: 14px;
-}
-
-.action-btn.anonymize:hover {
-  background: rgba(255, 152, 0, 0.2);
-  border-color: #ff9800;
-  color: #ff9800;
 }
 
 .action-btn.edit:hover {
@@ -792,7 +820,6 @@ const svg = (path: string, size = 16) => {
   color: #f44336;
 }
 
-/* Empty State */
 .empty-state {
   text-align: center;
   padding: 2rem !important;
@@ -806,12 +833,6 @@ const svg = (path: string, size = 16) => {
   opacity: 0.5;
 }
 
-.empty-state p {
-  margin: 0;
-  font-size: 0.85rem;
-}
-
-/* Modal */
 .modal {
   position: fixed;
   top: 0;
@@ -826,7 +847,7 @@ const svg = (path: string, size = 16) => {
 }
 
 .modal-user {
-  max-width: 450px;
+  max-width: 500px;
   width: 90%;
 }
 
@@ -899,6 +920,11 @@ const svg = (path: string, size = 16) => {
   background: rgba(255, 215, 0, 0.05);
 }
 
+.form-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -939,10 +965,9 @@ const svg = (path: string, size = 16) => {
   box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
 }
 
-/* Responsividade */
 @media (max-width: 1024px) {
   .users-table {
-    min-width: 650px;
+    min-width: 750px;
   }
 }
 
@@ -971,7 +996,7 @@ const svg = (path: string, size = 16) => {
   }
   
   .users-table {
-    min-width: 550px;
+    min-width: 650px;
     font-size: 0.7rem;
   }
   

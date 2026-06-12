@@ -1,6 +1,6 @@
+<!-- src/pages/CadastroPage.vue -->
 <template>
   <div class="cadastro-page">
-    <!-- Fundo animado -->
     <div class="animated-bg">
       <div class="gradient-sphere"></div>
       <div class="gradient-sphere second"></div>
@@ -10,17 +10,14 @@
       </div>
     </div>
 
-    <!-- Container do Cadastro -->
     <div class="cadastro-container">
       <div class="cadastro-card">
-        <!-- Botão voltar -->
         <button class="back-button" @click="goBack">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
 
-        <!-- Logo -->
         <div class="logo-section">
           <img 
             src="/src/assets/logo_512.png" 
@@ -34,11 +31,9 @@
           </div>
         </div>
 
-        <!-- Título -->
         <h2 class="cadastro-title">Criar Conta</h2>
         <p class="cadastro-subtitle">Preencha os dados para se cadastrar</p>
 
-        <!-- Formulário -->
         <form @submit.prevent="handleCadastro" class="cadastro-form">
           <div class="input-group">
             <div class="input-icon">
@@ -97,7 +92,7 @@
             <input 
               :type="showPassword ? 'text' : 'password'"
               v-model="formData.password"
-              placeholder="Senha"
+              placeholder="Senha (mínimo 6 caracteres)"
               required
               class="cadastro-input"
             />
@@ -116,26 +111,48 @@
             </button>
           </div>
 
-          <!-- Termos de Uso -->
-          <div class="terms-group">
-            <label class="checkbox-label">
+          <div class="terms-group required-group">
+            <label class="checkbox-label required">
               <input type="checkbox" v-model="acceptTerms" required />
               <span>
                 Li e aceito os 
                 <button type="button" class="terms-link" @click="showTermsModal = true">
                   Termos de Uso
                 </button>
+                <span class="required-badge">(Obrigatório)</span>
               </span>
             </label>
           </div>
 
-          <button type="submit" class="cadastro-button" :disabled="loading || !acceptTerms">
+          <div class="terms-group required-group">
+            <label class="checkbox-label required">
+              <input type="checkbox" v-model="acceptPrivacy" required />
+              <span>
+                Li e aceito a 
+                <button type="button" class="terms-link" @click="showPrivacyModal = true">
+                  Política de Privacidade
+                </button>
+                <span class="required-badge">(Obrigatório)</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="terms-group optional-group">
+            <label class="checkbox-label optional">
+              <input type="checkbox" v-model="acceptCommunications" />
+              <span>
+                Aceito receber comunicações sobre o sistema
+                <span class="optional-badge">(Opcional)</span>
+              </span>
+            </label>
+          </div>
+
+          <button type="submit" class="cadastro-button" :disabled="loading || !acceptTerms || !acceptPrivacy">
             <span v-if="!loading">Cadastrar</span>
             <div v-else class="spinner"></div>
           </button>
         </form>
 
-        <!-- Link para login -->
         <div class="cadastro-footer">
           <p>Já tem uma conta? <router-link to="/login" class="login-link">Faça login</router-link></p>
         </div>
@@ -143,20 +160,101 @@
     </div>
 
     <!-- Modal de Termos de Uso -->
-    <div v-if="showTermsModal" class="modal" @click.self="closeModal">
-      <div class="modal-content">
+    <div v-if="showTermsModal" class="modal" @click.self="closeTermsModal">
+      <div class="modal-content terms-modal">
         <div class="modal-header">
-          <h3>Termos de Uso</h3>
-          <button class="modal-close" @click="closeModal">&times;</button>
+          <div class="modal-header-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L3 7L12 12L21 7L12 2Z" stroke="#FFD700" stroke-width="1.5" fill="none"/>
+              <path d="M3 17L12 22L21 17" stroke="#FFD700" stroke-width="1.5" fill="none"/>
+              <path d="M3 12L12 17L21 12" stroke="#FFD700" stroke-width="1.5" fill="none"/>
+            </svg>
+          </div>
+          <h2 class="modal-header-title">Termos de Uso - Enersigh</h2>
         </div>
-        <div class="modal-body">
-          <p>Em desenvolvimento...</p>
-          <p style="margin-top: 1rem; color: rgba(255,255,255,0.6);">
-            Os termos de uso serão adicionados em breve.
-          </p>
+        <div class="modal-body terms-content">
+          <div class="terms-section">
+            <h3>1. Aceitação dos Termos</h3>
+            <p>Ao acessar e usar o sistema Enersigh, você concorda em cumprir estes Termos de Uso.</p>
+          </div>
+          
+          <div class="terms-section">
+            <h3>2. Uso do Sistema</h3>
+            <p>O sistema é destinado ao monitoramento e previsão de indicadores de energia. Você concorda em usar o sistema apenas para fins legais e autorizados.</p>
+          </div>
+          
+          <div class="terms-section">
+            <h3>3. Dados e Privacidade</h3>
+            <p>Seus dados serão tratados conforme nossa Política de Privacidade. Você é responsável pela veracidade das informações fornecidas.</p>
+          </div>
+          
+          <div class="terms-section">
+            <h3>4. Responsabilidades</h3>
+            <p>O Enersigh não se responsabiliza por decisões tomadas com base nos dados fornecidos pelo sistema sem validação adequada.</p>
+          </div>
+          
+          <div class="terms-section">
+            <h3>5. Modificações</h3>
+            <p>Reservamo-nos o direito de modificar estes termos a qualquer momento, com notificação prévia.</p>
+          </div>
+          
+          <div class="terms-section">
+            <h3>6. Cancelamento</h3>
+            <p>Você pode cancelar sua conta a qualquer momento, o que resultará na exclusão de seus dados.</p>
+          </div>
         </div>
         <div class="modal-footer">
-          <button class="modal-button" @click="closeModal">Fechar</button>
+          <button class="modal-button" @click="closeTermsModal">Entendi</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Política de Privacidade -->
+    <div v-if="showPrivacyModal" class="modal" @click.self="closePrivacyModal">
+      <div class="modal-content terms-modal">
+        <div class="modal-header">
+          <div class="modal-header-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L3 7L12 12L21 7L12 2Z" stroke="#FFD700" stroke-width="1.5" fill="none"/>
+              <path d="M3 17L12 22L21 17" stroke="#FFD700" stroke-width="1.5" fill="none"/>
+              <path d="M12 2V12" stroke="#FFD700" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <h2 class="modal-header-title">Política de Privacidade - Enersigh</h2>
+        </div>
+        <div class="modal-body terms-content">
+          <div class="terms-section">
+            <h3>1. Coleta de Dados</h3>
+            <p>Coletamos informações como nome, email e dados de uso do sistema para melhorar nossa prestação de serviços.</p>
+          </div>
+          
+          <div class="terms-section">
+            <h3>2. Uso das Informações</h3>
+            <p>Seus dados são utilizados exclusivamente para monitoramento e previsão de indicadores de energia.</p>
+          </div>
+          
+          <div class="terms-section">
+            <h3>3. Compartilhamento</h3>
+            <p>Não compartilhamos seus dados pessoais com terceiros sem seu consentimento explícito.</p>
+          </div>
+          
+          <div class="terms-section">
+            <h3>4. Segurança</h3>
+            <p>Implementamos medidas de segurança para proteger seus dados contra acesso não autorizado.</p>
+          </div>
+          
+          <div class="terms-section">
+            <h3>5. Seus Direitos</h3>
+            <p>Você tem direito a acessar, corrigir ou solicitar a exclusão de seus dados a qualquer momento.</p>
+          </div>
+          
+          <div class="terms-section">
+            <h3>6. Cookies</h3>
+            <p>Utilizamos cookies para melhorar sua experiência de navegação no sistema.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-button" @click="closePrivacyModal">Entendi</button>
         </div>
       </div>
     </div>
@@ -166,13 +264,19 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import usersApi from '../api/users.api'
+import { MockUsers } from '../service/UsersMock'
+import { useToast } from '../composables/useToast'
 
 const router = useRouter()
+const { success, error, warning } = useToast()
+
 const loading = ref(false)
 const showPassword = ref(false)
 const acceptTerms = ref(false)
+const acceptPrivacy = ref(false)
+const acceptCommunications = ref(false)
 const showTermsModal = ref(false)
+const showPrivacyModal = ref(false)
 
 const formData = ref({
   name: '',
@@ -195,37 +299,67 @@ const goBack = () => {
   router.push('/login')
 }
 
-const closeModal = () => {
+const closeTermsModal = () => {
   showTermsModal.value = false
 }
 
+const closePrivacyModal = () => {
+  showPrivacyModal.value = false
+}
+
 const handleCadastro = async () => {
-  // Validar todos os campos
   if (!formData.value.name || !formData.value.email || !formData.value.phone || !formData.value.password) {
-    alert('Por favor, preencha todos os campos!')
+    warning('Por favor, preencha todos os campos!', 'Campos Obrigatórios')
+    return
+  }
+
+  if (formData.value.password.length < 6) {
+    warning('A senha deve ter no mínimo 6 caracteres!', 'Senha Inválida')
     return
   }
 
   if (!acceptTerms.value) {
-    alert('Você precisa aceitar os Termos de Uso para se cadastrar!')
+    warning('Você precisa aceitar os Termos de Uso para se cadastrar!', 'Termos Obrigatórios')
+    return
+  }
+
+  if (!acceptPrivacy.value) {
+    warning('Você precisa aceitar a Política de Privacidade para se cadastrar!', 'Política Obrigatória')
     return
   }
 
   loading.value = true
 
   try {
-    const payload = {
+    const existingUser = MockUsers.getByEmail(formData.value.email)
+    if (existingUser) {
+      error('Este e-mail já está cadastrado!', 'E-mail Existente')
+      loading.value = false
+      return
+    }
+
+    const newUser = MockUsers.create({
       name: formData.value.name,
       email: formData.value.email,
+      password: formData.value.password,
       phone: formData.value.phone,
-      password: formData.value.password
-    }
-    await usersApi.register(payload)
-    alert('Cadastro realizado com sucesso! Aguarde aprovação do administrador ou faça login quando disponível.')
-    router.push('/login')
+      role: 'user',
+      termsAccepted: acceptTerms.value,
+      privacyAccepted: acceptPrivacy.value,
+      communicationsAccepted: acceptCommunications.value
+    })
+
+    success(
+      `Cadastro realizado com sucesso!\n\n⏳ Seu cadastro foi enviado para aprovação do administrador.`,
+      'Cadastro Realizado!'
+    )
+    
+    setTimeout(() => {
+      router.push('/login')
+    }, 3000)
   } catch (err: any) {
     console.error('Erro no cadastro', err)
-    alert(err?.response?.data?.message || 'Erro ao cadastrar usuário')
+    error(err?.message || 'Erro ao cadastrar usuário', 'Erro no Cadastro')
   } finally {
     loading.value = false
   }
@@ -242,6 +376,123 @@ const getParticleStyle = (i: number) => {
 </script>
 
 <style scoped>
+/* Mantenha todo o CSS existente e adicione/atualize: */
+
+.required-group {
+  margin-top: 0.5rem;
+}
+
+.optional-group {
+  margin-top: 0.25rem;
+}
+
+.required-badge {
+  font-size: 0.7rem;
+  color: #ff8888;
+  background: rgba(255, 68, 68, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+.optional-badge {
+  font-size: 0.7rem;
+  color: #888;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+.checkbox-label.required {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.checkbox-label.optional {
+  opacity: 0.8;
+}
+
+/* Estilos para os modais de termos */
+.terms-modal {
+  max-width: 700px;
+  width: 90%;
+}
+
+.modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.modal-header-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-header-title {
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
+.terms-content {
+  text-align: left;
+  padding: 1rem 1.5rem;
+}
+
+.terms-section {
+  margin-bottom: 1.25rem;
+}
+
+.terms-section:last-child {
+  margin-bottom: 0;
+}
+
+.terms-section h3 {
+  color: #FFD700;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.terms-section p {
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
+  border-top: 1px solid rgba(255, 215, 0, 0.2);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-button {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #0a0a0a;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.modal-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+}
+
+/* Restante do CSS existente */
 * {
   margin: 0;
   padding: 0;
@@ -256,7 +507,6 @@ const getParticleStyle = (i: number) => {
   font-family: 'Segoe UI', 'Poppins', sans-serif;
 }
 
-/* Fundo animado (mesmo do login) */
 .animated-bg {
   position: fixed;
   top: 0;
@@ -283,7 +533,6 @@ const getParticleStyle = (i: number) => {
   top: 60%;
   left: 70%;
   animation-delay: -5s;
-  background: radial-gradient(circle, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0));
 }
 
 .gradient-sphere.third {
@@ -292,7 +541,12 @@ const getParticleStyle = (i: number) => {
   top: 20%;
   left: -10%;
   animation-delay: -10s;
-  background: radial-gradient(circle, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0));
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(30px, -30px) rotate(120deg); }
+  66% { transform: translate(-20px, 20px) rotate(240deg); }
 }
 
 .energy-particles {
@@ -328,12 +582,6 @@ const getParticleStyle = (i: number) => {
   }
 }
 
-@keyframes float {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  33% { transform: translate(30px, -30px) rotate(120deg); }
-  66% { transform: translate(-20px, 20px) rotate(240deg); }
-}
-
 .cadastro-container {
   position: relative;
   z-index: 1;
@@ -357,6 +605,17 @@ const getParticleStyle = (i: number) => {
   position: relative;
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .back-button {
   position: absolute;
   top: 20px;
@@ -377,17 +636,6 @@ const getParticleStyle = (i: number) => {
 .back-button:hover {
   background: rgba(255, 215, 0, 0.2);
   transform: translateX(-3px);
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .logo-section {
@@ -480,7 +728,7 @@ const getParticleStyle = (i: number) => {
 }
 
 .terms-group {
-  margin-top: 0.5rem;
+  margin: 0.25rem 0;
 }
 
 .checkbox-label {
@@ -489,14 +737,14 @@ const getParticleStyle = (i: number) => {
   gap: 0.5rem;
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .checkbox-label input {
   cursor: pointer;
   accent-color: #FFD700;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .terms-link {
@@ -504,7 +752,7 @@ const getParticleStyle = (i: number) => {
   border: none;
   color: #FFD700;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   text-decoration: underline;
   padding: 0;
   margin: 0;
@@ -593,7 +841,6 @@ const getParticleStyle = (i: number) => {
   text-decoration: underline;
 }
 
-/* Modal */
 .modal {
   position: fixed;
   top: 0;
@@ -614,65 +861,9 @@ const getParticleStyle = (i: number) => {
   border: 1px solid rgba(255, 215, 0, 0.3);
   border-radius: 20px;
   width: 90%;
-  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
   animation: scaleIn 0.3s ease;
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
-}
-
-.modal-header h3 {
-  color: #FFD700;
-  font-size: 1.5rem;
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 2rem;
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.modal-close:hover {
-  color: #FFD700;
-}
-
-.modal-body {
-  padding: 1.5rem;
-  color: white;
-  min-height: 200px;
-}
-
-.modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid rgba(255, 215, 0, 0.2);
-  display: flex;
-  justify-content: flex-end;
-}
-
-.modal-button {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  color: #0a0a0a;
-  border: none;
-  padding: 8px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.modal-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
 }
 
 @keyframes fadeIn {
@@ -691,7 +882,6 @@ const getParticleStyle = (i: number) => {
   }
 }
 
-/* Responsividade */
 @media (max-width: 768px) {
   .cadastro-card {
     padding: 2rem;
@@ -703,6 +893,22 @@ const getParticleStyle = (i: number) => {
   
   .cadastro-logo {
     height: 90px;
+  }
+  
+  .terms-modal {
+    max-width: 95%;
+  }
+  
+  .modal-header-title {
+    font-size: 1.1rem;
+  }
+  
+  .terms-section h3 {
+    font-size: 0.95rem;
+  }
+  
+  .terms-section p {
+    font-size: 0.8rem;
   }
 }
 

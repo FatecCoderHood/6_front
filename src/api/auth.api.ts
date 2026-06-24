@@ -1,4 +1,4 @@
-import { apiClient } from './client'
+import { authClient } from './client'
 
 interface LoginRequest {
   username?: string
@@ -7,19 +7,32 @@ interface LoginRequest {
 }
 
 interface LoginResponse {
-  token?: string
-  // backend may return user info in different shapes; accept any
-  user?: any
+  token: string
+  refreshToken?: string
+  user: {
+    id: string
+    email: string
+    name?: string | null
+    roles: string[]
+  }
 }
 
 export const authApi = {
   async login(payload: LoginRequest): Promise<LoginResponse> {
-    // Backend expects `{ email, password }` — accept username or email from caller
-    const body: any = {
+    // enersight-auth expects `{ email, password }` — accept username or email from caller
+    const body = {
       email: payload.email || payload.username,
       password: payload.password
     }
-    return apiClient.post<LoginResponse>('/auth/login', body)
+    return authClient.post<LoginResponse>('/auth/login', body)
+  },
+
+  async refresh(refreshToken: string): Promise<LoginResponse> {
+    return authClient.post<LoginResponse>('/auth/refresh', { refreshToken })
+  },
+
+  async logout(refreshToken: string): Promise<void> {
+    return authClient.post<void>('/auth/logout', { refreshToken })
   }
 }
 

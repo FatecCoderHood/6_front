@@ -184,6 +184,8 @@
     "passwordsDoNotMatch": "Passwords do not match!",
     "passwordMinLength": "New password must be at least 6 characters!",
     "passwordChanged": "Password changed successfully!",
+    "currentPasswordIncorrect": "Current password is incorrect!",
+    "actionFailed": "Could not complete the action. Please try again.",
     "infoUpdated": "Information updated successfully!",
     "preferencesSaved": "Communication preferences saved!",
     "accountDeleted": "Account successfully deleted! Redirecting...",

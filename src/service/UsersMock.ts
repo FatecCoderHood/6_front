@@ -94,11 +94,13 @@ export const MockUsers = {
     return users.find(u => u.email === email)
   },
 
-  create: (userData: Omit<MockUser, 'id' | 'uuid' | 'createdAt' | 'status'>): MockUser => {
+  create: (userData: Omit<MockUser, 'id' | 'uuid' | 'createdAt' | 'status' | 'name' | 'phone'> & { name?: string; phone?: string }): MockUser => {
     const newUser: MockUser = {
       id: nextId++,
       uuid: generateUUID(),
       ...userData,
+      name: userData.name || userData.email.split('@')[0],
+      phone: userData.phone || '',
       status: 'pending',
       createdAt: new Date().toISOString()
     }

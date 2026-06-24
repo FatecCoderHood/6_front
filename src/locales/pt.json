@@ -186,6 +186,8 @@
     "passwordsDoNotMatch": "As senhas não coincidem!",
     "passwordMinLength": "A nova senha deve ter no mínimo 6 caracteres!",
     "passwordChanged": "Senha alterada com sucesso!",
+    "currentPasswordIncorrect": "Senha atual incorreta!",
+    "actionFailed": "Não foi possível concluir a ação. Tente novamente.",
     "infoUpdated": "Informações atualizadas com sucesso!",
     "preferencesSaved": "Preferências de comunicação salvas!",
     "accountDeleted": "Conta excluída com sucesso! Redirecionando...",

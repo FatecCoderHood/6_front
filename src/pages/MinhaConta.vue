@@ -21,7 +21,7 @@
           <div class="profile-info">
             <h1>{{ user.name }}</h1>
             <p class="user-email">{{ user.email }}</p>
-            <p class="user-role">{{ user.role === 'admin' ? t('users.roleAdmin') : t('users.roleUser') }}</p>
+            <p class="user-role">{{ isAdminRole(user.role) ? t('users.roleAdmin') : t('users.roleUser') }}</p>
           </div>
         </div>
 
@@ -77,10 +77,10 @@
 
             <div class="form-group">
               <label>{{ t('users.email') }}</label>
-              <input 
-                v-model="editUser.email" 
-                type="email" 
-                required
+              <input
+                v-model="editUser.email"
+                type="email"
+                disabled
                 :placeholder="t('users.email')"
               />
             </div>
@@ -363,13 +363,16 @@ import { useI18n } from 'vue-i18n'
 import authUsecase from '../service/auth.usecase'
 import { MockUsers } from '../service/UsersMock'
 import LogsMock from '../service/LogsMock'
+import usersApi from '../api/users.api'
 
 const router = useRouter()
 const { t } = useI18n()
 
+const isAdminRole = (role: string) => role?.toLowerCase() === 'admin'
+
 // Dados do usuário - serão preenchidos pelo loadUserData
 const user = reactive({
-  id: 0,
+  id: '' as string | number,
   name: '',
   email: '',
   phone: '',
@@ -424,48 +427,54 @@ const isPasswordValid = computed(() => {
          passwordData.newPassword.length >= 6
 })
 
-// Carregar dados do usuário logado
-const loadUserData = () => {
+// Mock fallback only has independent data for the demo accounts seeded in UsersMock — it has no
+// record of a real-backend-only user, so unlike login/register, the real-branch operations below
+// don't fall back to mock on failure. isMockSession() decides the path once; a failed real call
+// just reports the failure instead of silently operating on unrelated mock data.
+const loadFromMock = () => {
   const currentUser = authUsecase.getCurrentUser()
-  if (currentUser) {
-    const fullUser = MockUsers.getByEmail(currentUser.email)
-    if (fullUser) {
-      user.id = fullUser.id
-      user.name = fullUser.name
-      user.email = fullUser.email
-      user.phone = fullUser.phone || ''
-      user.role = fullUser.role
-      
-      Object.assign(editUser, {
-        name: user.name,
-        email: user.email,
-        phone: user.phone
-      })
-      
-      consent.termsAccepted = fullUser.termsAccepted
-      consent.privacyAccepted = fullUser.privacyAccepted
-      consent.communicationsAccepted = fullUser.communicationsAccepted
-    }
-  } else {
-    // Fallback para dados mockados caso não haja usuário logado
-    const mockUser = MockUsers.getByEmail('admin@tecsys.com')
-    if (mockUser) {
-      user.id = mockUser.id
-      user.name = mockUser.name
-      user.email = mockUser.email
-      user.phone = mockUser.phone || ''
-      user.role = mockUser.role
-      
-      Object.assign(editUser, {
-        name: user.name,
-        email: user.email,
-        phone: user.phone
-      })
-      
-      consent.termsAccepted = mockUser.termsAccepted
-      consent.privacyAccepted = mockUser.privacyAccepted
-      consent.communicationsAccepted = mockUser.communicationsAccepted
-    }
+  const mockUser = MockUsers.getByEmail(currentUser?.email || 'admin@tecsys.com')
+  if (mockUser) {
+    user.id = mockUser.id
+    user.name = mockUser.name
+    user.email = mockUser.email
+    user.phone = mockUser.phone || ''
+    user.role = mockUser.role
+
+    Object.assign(editUser, {
+      name: user.name,
+      email: user.email,
+      phone: user.phone
+    })
+
+    consent.termsAccepted = mockUser.termsAccepted
+    consent.privacyAccepted = mockUser.privacyAccepted
+    consent.communicationsAccepted = mockUser.communicationsAccepted
+  }
+}
+
+// Carregar dados do usuário logado
+const loadUserData = async () => {
+  if (authUsecase.isMockSession()) {
+    loadFromMock()
+    return
+  }
+
+  try {
+    const me = await usersApi.getMe()
+    user.id = me.id
+    user.name = me.name || ''
+    user.email = me.email
+    user.phone = me.phone || ''
+    user.role = isAdminRole(me.roles[0]) ? 'admin' : 'user'
+
+    Object.assign(editUser, {
+      name: user.name,
+      email: user.email,
+      phone: user.phone
+    })
+  } catch (err) {
+    console.error('Failed to load profile', err)
   }
 }
 
@@ -478,56 +487,79 @@ const showSuccessToast = (message: string) => {
   }, 3000)
 }
 
-// Salvar informações do usuário
-const saveUserInfo = () => {
+const syncSessionName = (name: string) => {
   const currentUser = authUsecase.getCurrentUser()
-  if (currentUser && user.id) {
-    MockUsers.update(user.id, {
-      name: editUser.name,
-      email: editUser.email,
-      phone: editUser.phone
-    })
-    Object.assign(user, editUser)
-    
-    // Atualizar também no auth storage
-    const updatedUser = { ...currentUser, name: editUser.name, email: editUser.email }
-    const storage = localStorage.getItem('auth_token') ? localStorage : sessionStorage
-    storage.setItem('user_data', JSON.stringify(updatedUser))
-    
+  if (!currentUser) return
+  const updatedUser = { ...currentUser, name }
+  const storage = localStorage.getItem('auth_token') ? localStorage : sessionStorage
+  storage.setItem('user_data', JSON.stringify(updatedUser))
+}
+
+// Salvar informações do usuário
+const saveUserInfo = async () => {
+  if (authUsecase.isMockSession()) {
+    if (user.id) {
+      MockUsers.update(Number(user.id), { name: editUser.name, phone: editUser.phone })
+    }
+    user.name = editUser.name
+    user.phone = editUser.phone
+    syncSessionName(editUser.name)
     showSuccessToast(t('profile.infoUpdated'))
-  } else {
+    return
+  }
+
+  try {
+    const me = await usersApi.updateMe(editUser.name, editUser.phone)
+    user.name = me.name || ''
+    user.phone = me.phone || ''
+    syncSessionName(user.name)
     showSuccessToast(t('profile.infoUpdated'))
+  } catch {
+    showSuccessToast(t('profile.actionFailed'))
   }
 }
 
 // Alterar senha
-const changePassword = () => {
+const changePassword = async () => {
   if (passwordData.newPassword !== passwordData.confirmPassword) {
     showSuccessToast(t('profile.passwordsDoNotMatch'))
     return
   }
-  
+
   if (passwordData.newPassword.length < 6) {
     showSuccessToast(t('profile.passwordMinLength'))
     return
   }
-  
-  if (user.id) {
-    MockUsers.update(user.id, {
-      password: passwordData.newPassword
-    })
+
+  if (authUsecase.isMockSession()) {
+    if (!MockUsers.authenticate(user.email, passwordData.currentPassword)) {
+      showSuccessToast(t('profile.currentPasswordIncorrect'))
+      return
+    }
+    if (user.id) {
+      MockUsers.update(Number(user.id), { password: passwordData.newPassword })
+    }
+    showSuccessToast(t('profile.passwordChanged'))
+  } else {
+    try {
+      await usersApi.changePassword(passwordData.currentPassword, passwordData.newPassword)
+      showSuccessToast(t('profile.passwordChanged'))
+    } catch (err: any) {
+      showSuccessToast(err?.response?.status === 401 ? t('profile.currentPasswordIncorrect') : t('profile.actionFailed'))
+      return
+    }
   }
-  
-  showSuccessToast(t('profile.passwordChanged'))
+
   passwordData.currentPassword = ''
   passwordData.newPassword = ''
   passwordData.confirmPassword = ''
 }
 
-// Salvar consentimento (apenas a opção de comunicações)
+// Consentimento permanece mock/frontend-only (não promovido ao backend real) — para uma sessão
+// real, user.id é um UUID e não existe em MockUsers, então só persiste quando há sessão mock.
 const saveConsent = () => {
-  if (user.id) {
-    MockUsers.update(user.id, {
+  if (authUsecase.isMockSession() && user.id) {
+    MockUsers.update(Number(user.id), {
       communicationsAccepted: consent.communicationsAccepted
     })
   }
@@ -562,34 +594,44 @@ const closeRevokeModal = () => {
   confirmDeleteText.value = ''
 }
 
-const confirmRevokeConsent = () => {
-  if (confirmDeleteText.value === t('profile.confirmDeleteText')) {
-    if (user.id) {
-      // Registrar log de exclusão da própria conta
-      const currentUser = authUsecase.getCurrentUser()
-      if (currentUser && currentUser.uuid) {
-        LogsMock.registerAction(
-          currentUser.uuid,
-          currentUser.name,
-          currentUser.role,
-          'Exclusão de Conta Própria',
-          'delete',
-          currentUser.uuid,
-          '127.0.0.1'
-        )
+const confirmRevokeConsent = async () => {
+  if (confirmDeleteText.value !== t('profile.confirmDeleteText')) return
+
+  try {
+    if (authUsecase.isMockSession()) {
+      if (user.id) {
+        MockUsers.hardDelete(Number(user.id))
       }
-      // Excluir o usuário
-      MockUsers.hardDelete(user.id)
+    } else {
+      await usersApi.deleteMe()
     }
-    authUsecase.logout()
-    showSuccessToast(t('profile.accountDeleted'))
-    
-    setTimeout(() => {
-      router.push('/login')
-    }, 2000)
-    
-    closeRevokeModal()
+  } catch {
+    showSuccessToast(t('profile.actionFailed'))
+    return
   }
+
+  // Registrar log de exclusão da própria conta
+  const currentUser = authUsecase.getCurrentUser()
+  if (currentUser && currentUser.uuid) {
+    LogsMock.registerAction(
+      currentUser.uuid,
+      currentUser.name,
+      currentUser.role,
+      'Exclusão de Conta Própria',
+      'delete',
+      currentUser.uuid,
+      '127.0.0.1'
+    )
+  }
+
+  authUsecase.logout()
+  showSuccessToast(t('profile.accountDeleted'))
+
+  setTimeout(() => {
+    router.push('/login')
+  }, 2000)
+
+  closeRevokeModal()
 }
 
 onMounted(() => {
@@ -799,6 +841,11 @@ onMounted(() => {
 
 .form-group input::placeholder {
   color: rgba(255, 255, 255, 0.3);
+}
+
+.form-group input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .form-actions {

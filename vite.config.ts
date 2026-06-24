@@ -1,9 +1,12 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  test: {
+    environment: 'jsdom'
+  },
   server: {
     // Proxy API calls to backend during development to avoid CORS
     proxy: {
@@ -12,6 +15,13 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api')
+      },
+      // enersight-auth (Identity Provider) runs as its own service on a different port
+      '/auth-api': {
+        target: process.env.VITE_AUTH_API_PROXY || 'http://localhost:8082',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/auth-api/, '/api')
       }
     }
   }

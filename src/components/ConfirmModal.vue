@@ -21,6 +21,13 @@
       </div>
       <h3 class="modal-title">{{ title }}</h3>
       <p class="modal-message">{{ message }}</p>
+      <textarea
+        v-if="reasonLabel"
+        v-model="reason"
+        class="modal-reason"
+        rows="3"
+        :placeholder="reasonLabel"
+      ></textarea>
       <div class="modal-actions">
         <button class="btn-cancel" @click="handleCancel">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -28,7 +35,7 @@
           </svg>
           Cancelar
         </button>
-        <button :class="['btn-confirm', type]" @click="handleConfirm">
+        <button :class="['btn-confirm', type]" :disabled="!!reasonLabel && !reason.trim()" @click="handleConfirm">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path v-if="type === 'approve'" d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <path v-else-if="type === 'delete'" d="M3 6H5H21M8 6V5C8 4.46957 8.21071 3.96086 8.58579 3.58579C8.96086 3.21071 9.46957 3 10 3H14C14.5304 3 15.0391 3.21071 15.4142 3.58579C15.7893 3.96086 16 4.46957 16 5V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -51,21 +58,24 @@ const props = defineProps<{
   title: string
   message: string
   confirmText?: string
+  reasonLabel?: string
 }>()
 
 const emit = defineEmits<{
-  confirm: []
+  confirm: [reason: string]
   cancel: []
 }>()
 
 const localVisible = ref(props.visible)
+const reason = ref('')
 
 watch(() => props.visible, (newVal) => {
   localVisible.value = newVal
+  if (newVal) reason.value = ''
 })
 
 const handleConfirm = () => {
-  emit('confirm')
+  emit('confirm', reason.value.trim())
 }
 
 const handleCancel = () => {
@@ -112,6 +122,23 @@ const handleCancel = () => {
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+}
+
+.modal-reason {
+  width: 100%;
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.8rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font: inherit;
+  resize: vertical;
+}
+
+.btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .modal-message {

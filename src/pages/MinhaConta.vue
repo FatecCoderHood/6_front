@@ -362,6 +362,8 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import authUsecase from '../service/auth.usecase'
 import { MockUsers } from '../service/UsersMock'
+import usersApi from '../api/users.api'
+import { USE_MOCKS } from '../config/api.config'
 import LogsMock from '../service/LogsMock'
 
 const router = useRouter()
@@ -425,47 +427,31 @@ const isPasswordValid = computed(() => {
 })
 
 // Carregar dados do usuário logado
-const loadUserData = () => {
+const loadUserData = async () => {
   const currentUser = authUsecase.getCurrentUser()
-  if (currentUser) {
-    const fullUser = MockUsers.getByEmail(currentUser.email)
-    if (fullUser) {
-      user.id = fullUser.id
-      user.name = fullUser.name
-      user.email = fullUser.email
-      user.phone = fullUser.phone || ''
-      user.role = fullUser.role
-      
-      Object.assign(editUser, {
-        name: user.name,
-        email: user.email,
-        phone: user.phone
-      })
-      
-      consent.termsAccepted = fullUser.termsAccepted
-      consent.privacyAccepted = fullUser.privacyAccepted
-      consent.communicationsAccepted = fullUser.communicationsAccepted
-    }
-  } else {
-    // Fallback para dados mockados caso não haja usuário logado
-    const mockUser = MockUsers.getByEmail('admin@tecsys.com')
-    if (mockUser) {
-      user.id = mockUser.id
-      user.name = mockUser.name
-      user.email = mockUser.email
-      user.phone = mockUser.phone || ''
-      user.role = mockUser.role
-      
-      Object.assign(editUser, {
-        name: user.name,
-        email: user.email,
-        phone: user.phone
-      })
-      
-      consent.termsAccepted = mockUser.termsAccepted
-      consent.privacyAccepted = mockUser.privacyAccepted
-      consent.communicationsAccepted = mockUser.communicationsAccepted
-    }
+  if (!currentUser) return
+
+  // The signed-in user comes from the API (or its mock); the local MockUsers store only adds phone and consent.
+  let profile = currentUser
+  try {
+    profile = { ...currentUser, ...(await usersApi.getById(currentUser.uuid)) }
+  } catch (err) {
+    console.error('Could not refresh profile, using session data', err)
+  }
+
+  user.name = profile.name
+  user.email = profile.email
+  user.role = String(profile.role).toLowerCase()
+  Object.assign(editUser, { name: user.name, email: user.email, phone: '' })
+
+  const local = MockUsers.getByEmail(profile.email)
+  if (local) {
+    user.id = local.id
+    user.phone = local.phone || ''
+    editUser.phone = user.phone
+    consent.termsAccepted = local.termsAccepted
+    consent.privacyAccepted = local.privacyAccepted
+    consent.communicationsAccepted = local.communicationsAccepted
   }
 }
 
@@ -562,34 +548,31 @@ const closeRevokeModal = () => {
   confirmDeleteText.value = ''
 }
 
-const confirmRevokeConsent = () => {
-  if (confirmDeleteText.value === t('profile.confirmDeleteText')) {
-    if (user.id) {
-      // Registrar log de exclusão da própria conta
-      const currentUser = authUsecase.getCurrentUser()
-      if (currentUser && currentUser.uuid) {
-        LogsMock.registerAction(
-          currentUser.uuid,
-          currentUser.name,
-          currentUser.role,
-          'Exclusão de Conta Própria',
-          'delete',
-          currentUser.uuid,
-          '127.0.0.1'
-        )
-      }
-      // Excluir o usuário
-      MockUsers.hardDelete(user.id)
-    }
-    authUsecase.logout()
-    showSuccessToast(t('profile.accountDeleted'))
-    
-    setTimeout(() => {
-      router.push('/login')
-    }, 2000)
-    
-    closeRevokeModal()
+const confirmRevokeConsent = async () => {
+  if (confirmDeleteText.value !== t('profile.confirmDeleteText')) return
+
+  try {
+    await usersApi.deleteMe()
+  } catch (err: any) {
+    console.error('Account deletion failed', err)
+    showSuccessToast(err?.response?.data?.message || t('profile.deleteError'))
+    return
   }
+
+  if (USE_MOCKS) {
+    const currentUser = authUsecase.getCurrentUser()
+    if (currentUser?.uuid) {
+      LogsMock.registerAction(currentUser.uuid, currentUser.name, currentUser.role, 'Exclusão de Conta Própria', 'delete', currentUser.uuid, '127.0.0.1')
+    }
+  }
+  authUsecase.logout()
+  showSuccessToast(t('profile.accountDeleted'))
+
+  setTimeout(() => {
+    router.push('/login')
+  }, 2000)
+
+  closeRevokeModal()
 }
 
 onMounted(() => {

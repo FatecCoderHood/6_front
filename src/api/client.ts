@@ -16,13 +16,10 @@ class ApiClient {
     this.client.interceptors.request.use(
       (config) => {
         try {
-          const raw = localStorage.getItem('auth') || sessionStorage.getItem('auth')
-          if (raw) {
-            const auth = JSON.parse(raw)
-            if (auth && auth.token) {
-              config.headers = config.headers || {}
-              config.headers.Authorization = `Bearer ${auth.token}`
-            }
+          const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+          if (token) {
+            config.headers = config.headers || {}
+            config.headers.Authorization = `Bearer ${token}`
           }
         } catch (e) {
           // ignore parse errors
@@ -37,6 +34,14 @@ class ApiClient {
       (response) => response,
       (error) => {
         console.error('🔴 API Error:', error.response?.data || error.message)
+        // An expired or invalid token ends the session; a failed login (also 401) must reach the form.
+        if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
+          ['auth_token', 'user_data'].forEach((key) => {
+            localStorage.removeItem(key)
+            sessionStorage.removeItem(key)
+          })
+          if (window.location.pathname !== '/login') window.location.assign('/login')
+        }
         return Promise.reject(error)
       }
     )
@@ -54,6 +59,11 @@ class ApiClient {
 
   async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.put<T>(url, data, config)
+    return response.data
+  }
+
+  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.client.patch<T>(url, data, config)
     return response.data
   }
 

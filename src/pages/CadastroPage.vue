@@ -67,20 +67,7 @@
             />
           </div>
 
-          <div class="input-group">
-            <div class="input-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M22 16.92V19.93C22.0001 20.4514 21.8587 20.9624 21.5931 21.4035C21.3274 21.8446 20.9495 22.1964 20.5 22.42C20.0832 22.6228 19.6279 22.7313 19.166 22.7377C18.7041 22.7441 18.246 22.6484 17.824 22.457C14.8477 21.1583 12.2647 19.1455 10.32 16.59C9.92205 16.0489 9.57215 15.4706 9.27499 14.86C9.06189 14.4161 8.96173 13.9271 8.98199 13.4358C9.00225 12.9445 9.14231 12.4651 9.38999 12.04C9.84733 11.2516 10.5381 10.621 11.366 10.24C11.9281 9.97246 12.5517 9.85721 13.1687 9.90524C13.7856 9.95326 14.3742 10.1626 14.871 10.51C15.4815 10.967 15.9631 11.5682 16.262 12.25C16.5629 12.9375 16.7656 13.6665 16.862 14.41C16.9378 14.9491 16.9033 15.4982 16.761 16.025C16.6409 16.4371 16.4258 16.8166 16.132 17.13C15.9383 17.3476 15.7715 17.5884 15.636 17.846L15.319 18.375C15.2267 18.5315 15.1617 18.7036 15.127 18.883C15.0978 19.0574 15.0945 19.2353 15.117 19.41C15.1327 19.556 15.1803 19.6964 15.2561 19.8216C15.3319 19.9469 15.434 20.054 15.555 20.135C15.6569 20.2075 15.7741 20.2577 15.8981 20.282C16.0222 20.3062 16.1503 20.3039 16.274 20.275L19.05 19.67C19.2772 19.6279 19.4971 19.552 19.7012 19.445C19.8925 19.3459 20.0634 19.2139 20.205 19.055C20.3756 18.8589 20.5086 18.6324 20.596 18.387C20.6715 18.1785 20.7114 17.9585 20.714 17.736L20.72 16.96C20.7173 16.7348 20.7639 16.5117 20.8567 16.3059C20.9495 16.1001 21.0862 15.9163 21.257 15.767C21.4293 15.6186 21.6319 15.5089 21.8512 15.445C22.0705 15.3812 22.3017 15.3649 22.528 15.397C22.7553 15.4284 22.9725 15.5086 23.166 15.632C23.3595 15.7555 23.5251 15.9194 23.651 16.112C23.7769 16.3047 23.8603 16.5222 23.8958 16.75C23.9314 16.9778 23.9185 17.211 23.858 17.434" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <input 
-              type="tel" 
-              v-model="formData.phone"
-              placeholder="Telefone"
-              required
-              class="cadastro-input"
-            />
-          </div>
+          
 
           <div class="input-group">
             <div class="input-icon">
@@ -92,7 +79,7 @@
             <input 
               :type="showPassword ? 'text' : 'password'"
               v-model="formData.password"
-              placeholder="Senha (mínimo 6 caracteres)"
+              placeholder="Senha (mínimo 8 caracteres)"
               required
               class="cadastro-input"
             />
@@ -264,7 +251,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { MockUsers } from '../service/UsersMock'
+import usersApi from '../api/users.api'
+import termsApi from '../api/terms.api'
 import { useToast } from '../composables/useToast'
 
 const router = useRouter()
@@ -281,7 +269,6 @@ const showPrivacyModal = ref(false)
 const formData = ref({
   name: '',
   email: '',
-  phone: '',
   password: ''
 })
 
@@ -308,13 +295,13 @@ const closePrivacyModal = () => {
 }
 
 const handleCadastro = async () => {
-  if (!formData.value.name || !formData.value.email || !formData.value.phone || !formData.value.password) {
+  if (!formData.value.name || !formData.value.email || !formData.value.password) {
     warning('Por favor, preencha todos os campos!', 'Campos Obrigatórios')
     return
   }
 
-  if (formData.value.password.length < 6) {
-    warning('A senha deve ter no mínimo 6 caracteres!', 'Senha Inválida')
+  if (formData.value.password.length < 8) {
+    warning('A senha deve ter no mínimo 8 caracteres!', 'Senha Inválida')
     return
   }
 
@@ -331,24 +318,17 @@ const handleCadastro = async () => {
   loading.value = true
 
   try {
-    const existingUser = MockUsers.getByEmail(formData.value.email)
-    if (existingUser) {
-      error('Este e-mail já está cadastrado!', 'E-mail Existente')
-      loading.value = false
-      return
-    }
+    const terms = await termsApi.getAll()
+    const acceptedTermIds = terms
+      .filter((term) => term.type === 'MANDATORY' || acceptCommunications.value)
+      .map((term) => term.id)
 
-    const newUser = MockUsers.create({
+    await usersApi.register({
       name: formData.value.name,
       email: formData.value.email,
       password: formData.value.password,
-      phone: formData.value.phone,
-      role: 'user',
-      termsAccepted: acceptTerms.value,
-      privacyAccepted: acceptPrivacy.value,
-      communicationsAccepted: acceptCommunications.value
+      acceptedTermIds
     })
-
     success(
       `Cadastro realizado com sucesso!\n\n⏳ Seu cadastro foi enviado para aprovação do administrador.`,
       'Cadastro Realizado!'
@@ -359,7 +339,11 @@ const handleCadastro = async () => {
     }, 3000)
   } catch (err: any) {
     console.error('Erro no cadastro', err)
-    error(err?.message || 'Erro ao cadastrar usuário', 'Erro no Cadastro')
+    if (err?.response?.status === 409) {
+      error('Este e-mail já está cadastrado!', 'E-mail Existente')
+    } else {
+      error(err?.response?.data?.message || err?.message || 'Erro ao cadastrar usuário', 'Erro no Cadastro')
+    }
   } finally {
     loading.value = false
   }

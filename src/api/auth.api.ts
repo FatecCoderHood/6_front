@@ -1,26 +1,15 @@
 import { apiClient } from './client'
+import { USE_MOCKS } from '../config/api.config'
+import { authMock } from './mocks/auth.mock'
+import type { AuthApi, LoginRequest, LoginResponseDto } from './types'
 
-interface LoginRequest {
-  username?: string
-  email?: string
-  password: string
-}
-
-interface LoginResponse {
-  token?: string
-  // backend may return user info in different shapes; accept any
-  user?: any
-}
-
-export const authApi = {
-  async login(payload: LoginRequest): Promise<LoginResponse> {
-    // Backend expects `{ email, password }` — accept username or email from caller
-    const body: any = {
-      email: payload.email || payload.username,
-      password: payload.password
-    }
-    return apiClient.post<LoginResponse>('/auth/login', body)
+const authReal: AuthApi = {
+  async login(payload: LoginRequest): Promise<LoginResponseDto> {
+    // Backend expects `{ email, password }`
+    return apiClient.post<LoginResponseDto>('/auth/login', payload)
   }
 }
+
+export const authApi: AuthApi = USE_MOCKS ? authMock : authReal
 
 export default authApi

@@ -155,12 +155,9 @@ const handleLogin = async () => {
   } catch (err: any) {
     console.error('Login error', err)
     
-    // Tratamento específico para conta pendente
-    if (err.message && err.message.includes('CONTA_PENDENTE')) {
-      info(
-        'Seu cadastro está aguardando aprovação do administrador.\n\nVocê receberá um e-mail quando sua conta for ativada.\n\nPor favor, aguarde a aprovação.',
-        'Conta Pendente'
-      )
+    // 403 = account not allowed to sign in yet (pending approval, rejected, deactivated)
+    if (err?.response?.status === 403) {
+      info(err.response.data?.message || 'Sua conta não está habilitada para acesso.', 'Acesso não liberado')
     } else {
       error(err?.response?.data?.message || err?.message || 'Credenciais inválidas.', 'Erro ao fazer login')
     }

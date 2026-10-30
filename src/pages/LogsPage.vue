@@ -210,7 +210,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import LogsMock, { type LogEntry, formatLogDate } from '../service/LogsMock'
+import { type LogEntry, formatLogDate } from '../service/LogsMock'
+import logsApi from '../api/logs.api'
 
 const { t } = useI18n()
 
@@ -332,9 +333,13 @@ const exportLogs = () => {
   URL.revokeObjectURL(url)
 }
 
-const loadLogs = () => {
-  logs.value = LogsMock.getAll()
-  console.log('Logs carregados:', logs.value.length)
+const loadLogs = async () => {
+  try {
+    logs.value = await logsApi.getAll()
+  } catch (err) {
+    console.error('Could not load logs', err)
+    logs.value = []
+  }
 }
 
 onMounted(() => {

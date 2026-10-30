@@ -36,10 +36,7 @@
             class="search-input"
           />
         </div>
-        <button class="btn-add" @click="openUserModal()">
-          <span v-html="svg(mdiPlus)"></span>
-          {{ t('users.newUser') }}
-        </button>
+
       </div>
 
       <div class="table-wrapper">
@@ -48,7 +45,7 @@
             <tr>
               <th class="col-name">{{ t('users.name') }}</th>
               <th class="col-email">{{ t('users.email') }}</th>
-              <th class="col-phone">{{ t('users.phone') }}</th>
+
               <th class="col-role">{{ t('users.role') }}</th>
               <th class="col-date">{{ t('users.date') }}</th>
               <th class="col-actions">{{ t('users.actions') }}</th>
@@ -63,7 +60,7 @@
                 </div>
               </td>
               <td class="col-email" :title="user.email">{{ user.email }}</td>
-              <td class="col-phone">{{ user.phone || '—' }}</td>
+
               <td>
                 <span :class="['role-badge', getRoleClass(user.role)]">
                   {{ getRoleName(user.role) }}
@@ -72,9 +69,7 @@
               <td>{{ formatDate(user.createdAt) }}</td>
               <td>
                 <div class="action-buttons">
-                  <button class="action-btn edit" @click="openUserModal(user)" :title="t('users.edit')">
-                    <span v-html="svg(mdiPencil)"></span>
-                  </button>
+
                   <button class="action-btn delete" @click="softDeleteUser(user)" :title="t('users.delete')">
                     <span v-html="svg(mdiDelete)"></span>
                   </button>
@@ -82,7 +77,7 @@
               </td>
             </tr>
             <tr v-if="filteredApprovedUsers.length === 0">
-              <td colspan="6" class="empty-state">
+              <td colspan="5" class="empty-state">
                 <span v-html="svg(mdiAccountMultiple)"></span>
                 <p>{{ t('users.noUsers') }}</p>
               </td>
@@ -112,7 +107,7 @@
             <tr>
               <th class="col-name-pending">{{ t('users.name') }}</th>
               <th class="col-email-pending">{{ t('users.email') }}</th>
-              <th class="col-phone-pending">{{ t('users.phone') }}</th>
+
               <th class="col-date-pending">{{ t('users.date') }}</th>
               <th class="col-actions-pending">{{ t('users.actions') }}</th>
             </tr>
@@ -126,7 +121,7 @@
                 </div>
               </td>
               <td class="col-email-pending" :title="user.email">{{ user.email }}</td>
-              <td class="col-phone-pending">{{ user.phone || '—' }}</td>
+
               <td class="col-date-pending">{{ formatDate(user.createdAt) }}</td>
               <td class="col-actions-pending">
                 <div class="action-buttons">
@@ -140,7 +135,7 @@
               </td>
             </tr>
             <tr v-if="filteredPendingUsers.length === 0">
-              <td colspan="5" class="empty-state">
+              <td colspan="4" class="empty-state">
                 <span v-html="svg(mdiAccountCheck)"></span>
                 <p>{{ t('users.noPending') }}</p>
               </td>
@@ -150,55 +145,13 @@
       </div>
     </div>
 
-    <!-- Modal de Usuário -->
-    <div v-if="showUserModal" class="modal" @click.self="closeUserModal">
-      <div class="modal-content modal-user">
-        <div class="modal-header">
-          <h3>{{ editingUser ? t('users.editUser') : t('users.newUser') }}</h3>
-          <button class="modal-close" @click="closeUserModal">&times;</button>
-        </div>
-        <form @submit.prevent="saveUser" class="modal-form">
-          <div class="form-group">
-            <label>{{ t('users.fullName') }} *</label>
-            <input type="text" v-model="userForm.name" required class="form-input" />
-          </div>
-          <div class="form-group">
-            <label>{{ t('users.email') }} *</label>
-            <input type="email" v-model="userForm.email" required class="form-input" />
-          </div>
-          <div class="form-group">
-            <label>UUID</label>
-            <input type="text" v-model="userForm.uuid" disabled class="form-input" />
-          </div>
-          <div class="form-group">
-            <label>{{ t('users.phone') }}</label>
-            <input type="tel" v-model="userForm.phone" class="form-input" />
-          </div>
-          <div class="form-group">
-            <label>{{ t('users.role') }} *</label>
-            <select v-model="userForm.role" required class="form-select">
-              <option value="user">{{ t('users.roleUser') }}</option>
-              <option value="admin">{{ t('users.roleAdmin') }}</option>
-            </select>
-          </div>
-          <div class="form-group" v-if="!editingUser">
-            <label>{{ t('users.password') }} *</label>
-            <input type="password" v-model="userForm.password" required class="form-input" />
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn-cancel" @click="closeUserModal">{{ t('users.cancel') }}</button>
-            <button type="submit" class="btn-save">{{ t('users.save') }}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <ConfirmModal
       :visible="showConfirmModal"
       :type="confirmModalType"
       :title="confirmModalTitle"
       :message="confirmModalMessage"
       :confirm-text="confirmModalConfirmText"
+      :reason-label="confirmModalReasonLabel"
       @confirm="handleConfirmAction"
       @cancel="closeConfirmModal"
     />
@@ -222,7 +175,9 @@ import {
   mdiAccountCircle,
   mdiAccountMultiple
 } from '@mdi/js'
-import { MockUsers } from '../service/UsersMock'
+import usersApi from '../api/users.api'
+import type { UserResponseDto } from '../api/types'
+import { USE_MOCKS } from '../config/api.config'
 import LogsMock from '../service/LogsMock'
 import authUsecase from '../service/auth.usecase'
 
@@ -230,7 +185,7 @@ const { t } = useI18n()
 const { success, error, warning, info } = useToast()
 
 interface User {
-  id: number
+  id: string
   uuid: string
   name: string
   email: string
@@ -241,29 +196,43 @@ interface User {
   createdAt: string
 }
 
+// Backend role is USER | ADMIN; lifecycle is `status` (only PENDING and ACTIVE users are listed here).
+const toViewUser = (dto: UserResponseDto): User => ({
+  id: dto.id,
+  uuid: dto.id,
+  name: dto.name,
+  email: dto.email,
+  phone: '—',
+  role: dto.role === 'ADMIN' ? 'admin' : 'user',
+  status: dto.status === 'PENDING' ? 'pending' : 'approved',
+  createdAt: dto.createdAt ?? ''
+})
+
+// The real backend audits these actions itself; LogsMock only feeds the Logs screen in mock mode.
+const logAction = (action: string, type: string, targetUuid?: string) => {
+  const currentUser = authUsecase.getCurrentUser()
+  if (USE_MOCKS && currentUser) {
+    LogsMock.registerAction(currentUser.uuid, currentUser.name, currentUser.role, action, type, targetUuid, '127.0.0.1')
+  }
+}
+
+const failure = (err: any, title: string) => {
+  console.error(title, err)
+  error(err?.response?.data?.message || t('users.actionError'), title)
+}
+
 const activeTab = ref<'approved' | 'pending'>('approved')
 const searchApproved = ref('')
 const searchPending = ref('')
-const showUserModal = ref(false)
-const editingUser = ref(false)
-const editingUserId = ref<number | null>(null)
 
 const showConfirmModal = ref(false)
 const confirmModalType = ref<'approve' | 'reject' | 'delete' | 'warning'>('warning')
 const confirmModalTitle = ref('')
 const confirmModalMessage = ref('')
 const confirmModalConfirmText = ref('Confirmar')
-let pendingAction: (() => void) | null = null
+const confirmModalReasonLabel = ref('')
+let pendingAction: ((reason: string) => void | Promise<void>) | null = null
 let pendingUser: User | null = null
-
-const userForm = ref({
-  name: '',
-  uuid: '',
-  email: '',
-  phone: '',
-  role: 'user' as 'admin' | 'user',
-  password: ''
-})
 
 const users = ref<User[]>([])
 
@@ -293,22 +262,19 @@ const formatDate = (dateString: string) => {
 const getRoleClass = (role: string) => role === 'admin' ? 'role-admin' : 'role-user'
 const getRoleName = (role: string) => role === 'admin' ? t('users.roleAdmin') : t('users.roleUser')
 
-const loadUsers = () => {
-  const allUsers = MockUsers.getAll(false)
-  users.value = allUsers.map(user => ({
-    id: user.id,
-    uuid: user.uuid,
-    name: user.name,
-    email: user.email,
-    phone: user.phone || '—',
-    role: user.role,
-    status: user.status,
-    createdAt: user.createdAt
-  }))
+const loadUsers = async () => {
+  try {
+    const apiUsers = await usersApi.getAll()
+    users.value = apiUsers.filter(u => u.status === 'PENDING' || u.status === 'ACTIVE').map(toViewUser)
+  } catch (err: any) {
+    users.value = []
+    failure(err, t('users.loadError'))
+  }
 }
 
 const openConfirmModal = (type: 'approve' | 'reject' | 'delete', user: User) => {
   confirmModalType.value = type
+  confirmModalReasonLabel.value = ''
   pendingUser = user
   
   switch(type) {
@@ -320,15 +286,16 @@ const openConfirmModal = (type: 'approve' | 'reject' | 'delete', user: User) => 
       break
     case 'reject':
       confirmModalTitle.value = 'Recusar Usuário'
-      confirmModalMessage.value = `Tem certeza que deseja RECUSAR o usuário "${user.name}"?\n\nEsta ação irá remover o usuário do sistema permanentemente.`
+      confirmModalMessage.value = `Tem certeza que deseja RECUSAR o usuário "${user.name}"?\n\nA justificativa é obrigatória e fica registrada.`
       confirmModalConfirmText.value = 'Recusar'
-      pendingAction = () => executeReject()
+      confirmModalReasonLabel.value = 'Justificativa da recusa'
+      pendingAction = (reason) => executeReject(reason)
       break
     case 'delete':
-      confirmModalTitle.value = 'Excluir Usuário'
-      confirmModalMessage.value = `Tem certeza que deseja EXCLUIR o usuário "${user.name}"?\n\n⚠️ Esta ação irá apenas ocultar o usuário da lista. Seus dados permanecem no sistema por questões de auditoria.`
-      confirmModalConfirmText.value = 'Excluir'
-      pendingAction = () => executeSoftDelete()
+      confirmModalTitle.value = 'Anonimizar Usuário'
+      confirmModalMessage.value = `Tem certeza que deseja ANONIMIZAR o usuário "${user.name}"?\n\nOs dados pessoais são removidos de forma irreversível (LGPD). A pessoa poderá se cadastrar novamente.`
+      confirmModalConfirmText.value = 'Anonimizar'
+      pendingAction = () => executeAnonymize()
       break
   }
   showConfirmModal.value = true
@@ -340,182 +307,51 @@ const closeConfirmModal = () => {
   pendingUser = null
 }
 
-const handleConfirmAction = () => {
-  if (pendingAction) pendingAction()
+const handleConfirmAction = async (reason: string) => {
+  const action = pendingAction
+  if (action) await action(reason)
   closeConfirmModal()
 }
 
-const executeApprove = () => {
+const executeApprove = async () => {
   if (!pendingUser) return
-  const updated = MockUsers.approve(pendingUser.id)
-  if (updated) {
-    loadUsers()
-    const currentUser = authUsecase.getCurrentUser()
-    if (currentUser) {
-      LogsMock.registerAction(
-        currentUser.uuid,
-        currentUser.name,
-        currentUser.role,
-        'Aprovação de Usuário',
-        'approve',
-        pendingUser.uuid,
-        '127.0.0.1'
-      )
-    }
+  try {
+    await usersApi.approveUser(pendingUser.id)
+    logAction('Aprovação de Usuário', 'approve', pendingUser.uuid)
     success(`${pendingUser.name} foi aprovado com sucesso!`, 'Usuário Aprovado')
+    await loadUsers()
+  } catch (err: any) {
+    failure(err, 'Erro ao aprovar')
   }
 }
 
-const executeReject = () => {
+const executeReject = async (reason: string) => {
   if (!pendingUser) return
-  const deleted = MockUsers.hardDelete(pendingUser.id)
-  if (deleted) {
-    loadUsers()
-    const currentUser = authUsecase.getCurrentUser()
-    if (currentUser) {
-      LogsMock.registerAction(
-        currentUser.uuid,
-        currentUser.name,
-        currentUser.role,
-        'Recusa de Usuário',
-        'reject',
-        pendingUser.uuid,
-        '127.0.0.1'
-      )
-    }
-    warning(`${pendingUser.name} foi recusado e removido do sistema.`, 'Usuário Recusado')
+  try {
+    await usersApi.rejectUser(pendingUser.id, reason)
+    logAction('Recusa de Usuário', 'reject', pendingUser.uuid)
+    warning(`${pendingUser.name} foi recusado.`, 'Usuário Recusado')
+    await loadUsers()
+  } catch (err: any) {
+    failure(err, 'Erro ao recusar')
   }
 }
 
-const executeSoftDelete = () => {
+const executeAnonymize = async () => {
   if (!pendingUser) return
-  const updated = MockUsers.softDelete(pendingUser.id)
-  if (updated) {
-    loadUsers()
-    const currentUser = authUsecase.getCurrentUser()
-    if (currentUser) {
-      LogsMock.registerAction(
-        currentUser.uuid,
-        currentUser.name,
-        currentUser.role,
-        'Exclusão de Usuário',
-        'delete',
-        pendingUser.uuid,
-        '127.0.0.1'
-      )
-    }
-    info(`${pendingUser.name} foi excluído logicamente.`, 'Usuário Excluído')
+  try {
+    await usersApi.anonymizeUser(pendingUser.id)
+    logAction('Anonimização de Usuário', 'delete', pendingUser.uuid)
+    info(`${pendingUser.name} foi anonimizado.`, 'Usuário Anonimizado')
+    await loadUsers()
+  } catch (err: any) {
+    failure(err, 'Erro ao anonimizar')
   }
 }
 
 const approveUser = (user: User) => openConfirmModal('approve', user)
 const rejectUser = (user: User) => openConfirmModal('reject', user)
 const softDeleteUser = (user: User) => openConfirmModal('delete', user)
-
-const openUserModal = (user?: User) => {
-  if (user) {
-    editingUser.value = true
-    editingUserId.value = user.id
-    userForm.value = {
-      name: user.name,
-      uuid: user.uuid,
-      email: user.email,
-      phone: user.phone === '—' ? '' : user.phone,
-      role: user.role,
-      password: ''
-    }
-  } else {
-    editingUser.value = false
-    editingUserId.value = null
-    userForm.value = {
-      name: '',
-      uuid: '',
-      email: '',
-      phone: '',
-      role: 'user',
-      password: ''
-    }
-  }
-  showUserModal.value = true
-}
-
-const closeUserModal = () => {
-  showUserModal.value = false
-  editingUser.value = false
-  editingUserId.value = null
-  userForm.value = {
-    name: '',
-    uuid: '',
-    email: '',
-    phone: '',
-    role: 'user',
-    password: ''
-  }
-}
-
-const saveUser = async () => {
-  const currentUser = authUsecase.getCurrentUser()
-  
-  if (editingUser.value && editingUserId.value) {
-    const updated = MockUsers.update(editingUserId.value, {
-      name: userForm.value.name,
-      phone: userForm.value.phone,
-      role: userForm.value.role
-    })
-    if (updated) {
-      loadUsers()
-      if (currentUser) {
-        LogsMock.registerAction(
-          currentUser.uuid,
-          currentUser.name,
-          currentUser.role,
-          'Edição de Usuário',
-          'update',
-          userForm.value.uuid,
-          '127.0.0.1'
-        )
-      }
-      success('As alterações foram salvas com sucesso!', 'Usuário Atualizado')
-    }
-  } else {
-    const existing = MockUsers.getByEmail(userForm.value.email)
-    if (existing) {
-      error('Já existe um usuário cadastrado com este e-mail.', 'E-mail Existente')
-      return
-    }
-    
-    if (!userForm.value.password || userForm.value.password.length < 6) {
-      warning('A senha deve ter no mínimo 6 caracteres.', 'Senha Inválida')
-      return
-    }
-    
-    const newUser = MockUsers.create({
-      name: userForm.value.name,
-      email: userForm.value.email,
-      password: userForm.value.password,
-      phone: userForm.value.phone,
-      role: userForm.value.role,
-      termsAccepted: true,
-      privacyAccepted: true,
-      communicationsAccepted: false
-    })
-    loadUsers()
-    
-    if (currentUser) {
-      LogsMock.registerAction(
-        currentUser.uuid,
-        currentUser.name,
-        currentUser.role,
-        'Criação de Usuário',
-        'create',
-        newUser.uuid,
-        '127.0.0.1'
-      )
-    }
-    success(`O usuário ${userForm.value.name} foi criado com sucesso!`, 'Usuário Criado')
-  }
-  closeUserModal()
-}
 
 onMounted(() => {
   loadUsers()

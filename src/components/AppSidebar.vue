@@ -11,21 +11,26 @@
         <span class="icon" v-html="svg(mdiMap)"></span>
         <span v-if="open">{{ t('sidebar.map') }}</span>
       </router-link>
-      <router-link to="/dashboard" class="nav-item" @click="closeSidebar">
-        <span class="icon" v-html="svg(mdiViewDashboard)"></span>
-        <span v-if="open">{{ t('sidebar.dashboard') }}</span>
+      <router-link to="/agente-previsao" class="nav-item" @click="closeSidebar">
+        <span class="icon" v-html="svg(mdiChartLine)"></span>
+        <span v-if="open">{{ t('sidebar.forecast') }}</span>
       </router-link>
-      <router-link to="/usuarios" class="nav-item" @click="closeSidebar">
-        <span class="icon" v-html="svg(mdiAccount)"></span>
-        <span v-if="open">{{ t('sidebar.users') }}</span>
-      </router-link>
-      <router-link to="/logs" class="nav-item" @click="closeSidebar">
-        <span class="icon" v-html="svg(mdiHistory)"></span>
-        <span v-if="open">{{ t('sidebar.logs') }}</span>
-      </router-link>
-      <router-link to="/reserva" class="nav-item" @click="closeSidebar">
-        <span class="icon" v-html="svg(mdiCalendar)"></span>
-        <span v-if="open">{{ t('sidebar.reserve') }}</span>
+      
+      <!-- Menu ADMIN only -->
+      <template v-if="userRole === 'admin'">
+        <router-link to="/usuarios" class="nav-item" @click="closeSidebar">
+          <span class="icon" v-html="svg(mdiAccount)"></span>
+          <span v-if="open">{{ t('sidebar.users') }}</span>
+        </router-link>
+        <router-link to="/logs" class="nav-item" @click="closeSidebar">
+          <span class="icon" v-html="svg(mdiHistory)"></span>
+          <span v-if="open">{{ t('sidebar.logs') }}</span>
+        </router-link>
+      </template>
+
+      <router-link to="/minha-conta" class="nav-item" @click="closeSidebar">
+        <span class="icon" v-html="svg(mdiAccountCircle)"></span>
+        <span v-if="open">{{ t('sidebar.myAccount') }}</span>
       </router-link>
 
       <div class="language-switch" :class="{ open: open }">
@@ -40,7 +45,6 @@
         </div>
       </div>
 
-      <!-- BOTÃO DE LOGOUT ADICIONADO NO FINAL -->
       <div class="logout-divider" v-if="open"></div>
       <button class="logout-btn nav-item" @click="handleLogout">
         <span class="icon" v-html="svg(mdiLogout)"></span>
@@ -51,10 +55,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { mdiHome, mdiMap, mdiViewDashboard, mdiAccount, mdiHistory, mdiCalendar, mdiLogout } from '@mdi/js'
+import { 
+  mdiHome, 
+  mdiMap, 
+  mdiChartLine,
+  mdiAccount, 
+  mdiHistory, 
+  mdiAccountCircle,
+  mdiLogout 
+} from '@mdi/js'
+import authUsecase from '../service/auth.usecase'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits(['toggle'])
@@ -63,6 +76,11 @@ const router = useRouter()
 let timeoutId: any = null
 
 const { t, locale } = useI18n()
+const userRole = ref('user')
+
+onMounted(() => {
+  userRole.value = authUsecase.getUserRole()
+})
 
 const localLocale = computed(() => locale.value)
 
@@ -94,8 +112,7 @@ function handleMouseLeave() {
 }
 
 function handleLogout() {
-  localStorage.removeItem('user')
-  sessionStorage.removeItem('user')
+  authUsecase.logout()
   router.push('/login')
 }
 
@@ -252,7 +269,6 @@ function svg(path: string, size = 20) {
 .language-switch:not(.open) { justify-content: center }
 .language-switch:not(.open) .lang-left, .language-switch:not(.open) .lang-name { display: none }
 
-/* Divider e botão de logout */
 .logout-divider {
   height: 1px;
   background: rgba(255, 255, 255, 0.1);

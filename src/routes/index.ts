@@ -2,15 +2,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MapaPage from '../pages/MapaPage.vue'
 import HomePage from '../pages/HomePage.vue'
-import DashboardPage from '../pages/DashboardPage.vue'
 import UsersPage from '../pages/UsersPage.vue'
 import LogsPage from '../pages/LogsPage.vue'
-import ReservaPage from '../pages/ReservaPage.vue'
 import LoginPage from '../pages/LoginPage.vue'  
 import CadastroPage from '../pages/CadastroPage.vue'
 import NotFoundPage from '../pages/NotFoundPage.vue'
 import MinhaConta from '../pages/MinhaConta.vue'
-import AgentePrevisao from '../pages/AgentePrevisao.vue'  // ADICIONE ESTA LINHA
+import AgentePrevisao from '../pages/AgentePrevisao.vue'
 import i18n from '../i18n'
 import authUsecase from '../service/auth.usecase'
 
@@ -31,25 +29,19 @@ const routes = [
     path: '/', 
     name: 'Home', 
     component: HomePage,
-    meta: { title: 'sidebar.home', requiresAuth: true }  
+    meta: { title: 'sidebar.home', requiresAuth: true, roles: ['admin', 'user'] }  
   },
   { 
     path: '/mapa', 
     name: 'Mapa', 
     component: MapaPage,
-    meta: { title: 'sidebar.map', requiresAuth: true }
+    meta: { title: 'sidebar.map', requiresAuth: true, roles: ['admin', 'user'] }
   },
   { 
-    path: '/agente-previsao',  // ADICIONE ESTA ROTA
+    path: '/agente-previsao', 
     name: 'AgentePrevisao', 
     component: AgentePrevisao,
-    meta: { title: 'Agente de Previsão', requiresAuth: true }
-  },
-  { 
-    path: '/dashboard', 
-    name: 'Dashboard', 
-    component: DashboardPage,
-    meta: { title: 'sidebar.dashboard', requiresAuth: true, roles: ['admin'] }
+    meta: { title: 'Agente de Previsão', requiresAuth: true, roles: ['admin', 'user'] }
   },
   { 
     path: '/usuarios', 
@@ -63,17 +55,11 @@ const routes = [
     component: LogsPage,
     meta: { title: 'sidebar.logs', requiresAuth: true, roles: ['admin'] }
   },
-  { 
-    path: '/reserva', 
-    name: 'Reserva', 
-    component: ReservaPage,
-    meta: { title: 'sidebar.reserve', requiresAuth: true, roles: ['admin'] }
-  },
   {
     path: '/minha-conta',
     name: 'MinhaConta',
     component: MinhaConta, 
-    meta: { title: 'Minha Conta', requiresAuth: true }
+    meta: { title: 'Minha Conta', requiresAuth: true, roles: ['admin', 'user'] }
   },
   {
     path: '/:pathMatch(.*)*', 
@@ -87,8 +73,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 })
-
-// (autenticação verificada via authUsecase)
 
 // GUARD DE NAVEGAÇÃO
 router.beforeEach((to, _from) => {
@@ -117,15 +101,13 @@ router.beforeEach((to, _from) => {
   // Role based guard if route defines roles
   const requiredRoles: string[] = (to.meta && (to.meta as any).roles) || []
   if (requiredRoles.length > 0 && auth) {
-    // check if user has at least one required role
-    const allowed = requiredRoles.some(r => authUsecase.hasRole(r))
+    const userRole = authUsecase.getUserRole()
+    const allowed = requiredRoles.includes(userRole)
     if (!allowed) {
-      // redirect to home if not authorized
       return '/'
     }
   }
 
-  // returning undefined continues the navigation
   return undefined
 })
 

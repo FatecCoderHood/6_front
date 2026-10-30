@@ -78,7 +78,6 @@
             </button>
           </div>
 
-          <!-- ALTERAÇÃO AQUI: Troquei "Esqueceu a senha?" por link de cadastro -->
           <div class="options">
             <label class="checkbox-label">
               <input type="checkbox" v-model="rememberMe" />
@@ -106,8 +105,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import authUsecase from '../service/auth.usecase'
+import { useToast } from '../composables/useToast'
 
 const router = useRouter()
+const { error, warning, info } = useToast()
+
 const loading = ref(false)
 const showPassword = ref(false)
 const rememberMe = ref(false)
@@ -128,22 +130,40 @@ const handleImageError = (event: Event) => {
 }
 
 const handleLogin = async () => {
+  if (!credentials.value.email || !credentials.value.password) {
+    warning('Por favor, preencha todos os campos!', 'Campos Obrigatórios')
+    return
+  }
+  
   loading.value = true
+  
   try {
     const auth = await authUsecase.login(credentials.value.email, credentials.value.password)
+    
     if (!auth || !auth.token) {
-      alert('Falha ao autenticar. Verifique suas credenciais.')
+      error('Verifique suas credenciais e tente novamente.', 'Falha na Autenticação')
       loading.value = false
       return
     }
 
     authUsecase.persist(auth, rememberMe.value)
-
-    // reload to ensure interceptors pick token OR just navigate
-    router.push('/')
+    info('Redirecionando para o sistema...', 'Login realizado!')
+    
+    setTimeout(() => {
+      router.push('/')
+    }, 1000)
   } catch (err: any) {
     console.error('Login error', err)
-    alert(err?.response?.data?.message || 'Erro ao fazer login')
+    
+    // Tratamento específico para conta pendente
+    if (err.message && err.message.includes('CONTA_PENDENTE')) {
+      info(
+        'Seu cadastro está aguardando aprovação do administrador.\n\nVocê receberá um e-mail quando sua conta for ativada.\n\nPor favor, aguarde a aprovação.',
+        'Conta Pendente'
+      )
+    } else {
+      error(err?.response?.data?.message || err?.message || 'Credenciais inválidas.', 'Erro ao fazer login')
+    }
   } finally {
     loading.value = false
   }
@@ -151,16 +171,15 @@ const handleLogin = async () => {
 
 const getParticleStyle = (i: number) => {
   return {
-    left: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 10}s`,
-    animationDuration: `${5 + Math.random() * 10}s`,
-    opacity: 0.1 + Math.random() * 0.3
+    left: `${(Math.random() * 60 + (i * 7) % 40)}%`,
+    animationDelay: `${(i % 5) * 0.7}s`,
+    animationDuration: `${5 + (i % 6) * 1.2}s`,
+    opacity: 0.1 + (i % 5) * 0.12
   }
 }
 </script>
 
 <style scoped>
-/* TODO O SEU CSS PERMANECE EXATAMENTE IGUAL */
 * {
   margin: 0;
   padding: 0;
@@ -289,15 +308,15 @@ const getParticleStyle = (i: number) => {
   }
 }
 
-/* Logo - AUMENTADO */
+/* Logo */
 .logo-section {
   display: flex;
   justify-content: center;
-  margin-bottom: 0.25rem; /* REDUZIDO: era 2rem, agora 1rem */
+  margin-bottom: 0.25rem;
 }
 
 .login-logo {
-  height: 120px; /* AUMENTADO: era 100px, agora 180px */
+  height: 120px;
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.3));
@@ -429,7 +448,6 @@ const getParticleStyle = (i: number) => {
   accent-color: #FFD700;
 }
 
-/* ESTILO NOVO PARA O LINK DE CADASTRO */
 .register-link {
   color: #FFD700;
   text-decoration: none;
@@ -527,11 +545,7 @@ const getParticleStyle = (i: number) => {
   }
   
   .login-logo {
-    height: 140px; /* Ajustado para telas menores */
-  }
-  
-  .logo-section {
-    margin-bottom: 0.75rem; /* Reduzido em telas menores */
+    height: 100px;
   }
 }
 
@@ -541,11 +555,7 @@ const getParticleStyle = (i: number) => {
   }
   
   .login-logo {
-    height: 120px; /* Ajustado para telas muito pequenas */
-  }
-  
-  .logo-section {
-    margin-bottom: 0.5rem;
+    height: 80px;
   }
   
   .options {

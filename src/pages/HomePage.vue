@@ -66,45 +66,48 @@
           </div>
         </router-link>
 
-        <router-link to="/usuarios" class="module-card" data-module="usuarios">
-          <div class="card-icon">
-            <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
-              <path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5" fill="none"/>
-              <path d="M23 21V19C22.9 16.8 21.3 15 19.2 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M16 3.13C17.9 3.57 19.1 5.42 19 7.5C19 9.58 17.9 11.43 16 11.87" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="card-content">
-            <h3>{{ t('home.modules.users.title') }}</h3>
-            <p>{{ t('home.modules.users.description') }}</p>
-          </div>
-          <div class="card-arrow">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </div>
-        </router-link>
+        <!-- Menu ADMIN only -->
+        <template v-if="userRole === 'admin'">
+          <router-link to="/usuarios" class="module-card" data-module="usuarios">
+            <div class="card-icon">
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
+                <path d="M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <path d="M23 21V19C22.9 16.8 21.3 15 19.2 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M16 3.13C17.9 3.57 19.1 5.42 19 7.5C19 9.58 17.9 11.43 16 11.87" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="card-content">
+              <h3>{{ t('home.modules.users.title') }}</h3>
+              <p>{{ t('home.modules.users.description') }}</p>
+            </div>
+            <div class="card-arrow">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </router-link>
 
-        <router-link to="/logs" class="module-card" data-module="logs">
-          <div class="card-icon">
-            <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
-              <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
-              <path d="M8 8H16M8 12H14M8 16H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="card-content">
-            <h3>{{ t('home.modules.logs.title') }}</h3>
-            <p>{{ t('home.modules.logs.description') }}</p>
-          </div>
-          <div class="card-arrow">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </div>
-        </router-link>
+          <router-link to="/logs" class="module-card" data-module="logs">
+            <div class="card-icon">
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
+                <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <path d="M8 8H16M8 12H14M8 16H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="card-content">
+              <h3>{{ t('home.modules.logs.title') }}</h3>
+              <p>{{ t('home.modules.logs.description') }}</p>
+            </div>
+            <div class="card-arrow">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </router-link>
+        </template>
 
-        <router-link to="/perfil" class="module-card" data-module="perfil">
+        <router-link to="/minha-conta" class="module-card" data-module="perfil">
           <div class="card-icon">
             <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
               <path d="M20 21V19C20 16.8 18.2 15 16 15H8C5.8 15 4 16.8 4 19V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -137,14 +140,20 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import authUsecase from '../service/auth.usecase'
 
 const { t } = useI18n()
+const userRole = ref('user')
 
 // Controle do clique para abrir modal
 const clickCount = ref(0)
 const showModal = ref(false)
 let clickTimeout: number | null = null
+
+onMounted(() => {
+  userRole.value = authUsecase.getUserRole()
+})
 
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
@@ -189,7 +198,6 @@ const closeModal = () => {
   showModal.value = false
 }
 </script>
-
 
 <style scoped>
 * {
@@ -277,7 +285,7 @@ const closeModal = () => {
 
 /* Logo 3x maior */
 .logo-img {
-  height: 200px; /* Era 80px, agora 3x maior */
+  height: 200px;
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
@@ -549,9 +557,8 @@ const closeModal = () => {
     font-size: 1.1rem;
   }
 
-  /* Ajuste da logo em telas menores - ainda 3x maior que o original */
   .logo-img {
-    height: 180px; /* Em telas menores, ajustado proporcionalmente */
+    height: 180px;
   }
   
   .close {

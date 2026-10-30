@@ -21,7 +21,7 @@
           <div class="profile-info">
             <h1>{{ user.name }}</h1>
             <p class="user-email">{{ user.email }}</p>
-            <p class="user-role">{{ t('users.roleAdmin') }}</p>
+            <p class="user-role">{{ user.role === 'admin' ? t('users.roleAdmin') : t('users.roleUser') }}</p>
           </div>
         </div>
 
@@ -357,23 +357,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import authUsecase from '../service/auth.usecase'
+import { MockUsers } from '../service/UsersMock'
+import LogsMock from '../service/LogsMock'
 
 const router = useRouter()
 const { t } = useI18n()
 
-// Dados mockados do usuário
+// Dados do usuário - serão preenchidos pelo loadUserData
 const user = reactive({
-  id: 1,
-  name: 'João Silva',
-  email: 'joao.silva@empresa.com',
-  phone: '(11) 99999-9999',
-  role: 'Administrador'
+  id: 0,
+  name: '',
+  email: '',
+  phone: '',
+  role: ''
 })
 
-const editUser = reactive({ ...user })
+const editUser = reactive({
+  name: '',
+  email: '',
+  phone: ''
+})
 
 // Dados de senha
 const passwordData = reactive({
@@ -400,6 +407,7 @@ const confirmDeleteText = ref('')
 
 // Computed
 const userInitials = computed(() => {
+  if (!user.name) return '?'
   return user.name
     .split(' ')
     .map(n => n[0])
@@ -416,6 +424,51 @@ const isPasswordValid = computed(() => {
          passwordData.newPassword.length >= 6
 })
 
+// Carregar dados do usuário logado
+const loadUserData = () => {
+  const currentUser = authUsecase.getCurrentUser()
+  if (currentUser) {
+    const fullUser = MockUsers.getByEmail(currentUser.email)
+    if (fullUser) {
+      user.id = fullUser.id
+      user.name = fullUser.name
+      user.email = fullUser.email
+      user.phone = fullUser.phone || ''
+      user.role = fullUser.role
+      
+      Object.assign(editUser, {
+        name: user.name,
+        email: user.email,
+        phone: user.phone
+      })
+      
+      consent.termsAccepted = fullUser.termsAccepted
+      consent.privacyAccepted = fullUser.privacyAccepted
+      consent.communicationsAccepted = fullUser.communicationsAccepted
+    }
+  } else {
+    // Fallback para dados mockados caso não haja usuário logado
+    const mockUser = MockUsers.getByEmail('admin@tecsys.com')
+    if (mockUser) {
+      user.id = mockUser.id
+      user.name = mockUser.name
+      user.email = mockUser.email
+      user.phone = mockUser.phone || ''
+      user.role = mockUser.role
+      
+      Object.assign(editUser, {
+        name: user.name,
+        email: user.email,
+        phone: user.phone
+      })
+      
+      consent.termsAccepted = mockUser.termsAccepted
+      consent.privacyAccepted = mockUser.privacyAccepted
+      consent.communicationsAccepted = mockUser.communicationsAccepted
+    }
+  }
+}
+
 // Funções de notificação
 const showSuccessToast = (message: string) => {
   toastMessage.value = message
@@ -427,8 +480,24 @@ const showSuccessToast = (message: string) => {
 
 // Salvar informações do usuário
 const saveUserInfo = () => {
-  Object.assign(user, editUser)
-  showSuccessToast(t('profile.infoUpdated'))
+  const currentUser = authUsecase.getCurrentUser()
+  if (currentUser && user.id) {
+    MockUsers.update(user.id, {
+      name: editUser.name,
+      email: editUser.email,
+      phone: editUser.phone
+    })
+    Object.assign(user, editUser)
+    
+    // Atualizar também no auth storage
+    const updatedUser = { ...currentUser, name: editUser.name, email: editUser.email }
+    const storage = localStorage.getItem('auth_token') ? localStorage : sessionStorage
+    storage.setItem('user_data', JSON.stringify(updatedUser))
+    
+    showSuccessToast(t('profile.infoUpdated'))
+  } else {
+    showSuccessToast(t('profile.infoUpdated'))
+  }
 }
 
 // Alterar senha
@@ -443,6 +512,12 @@ const changePassword = () => {
     return
   }
   
+  if (user.id) {
+    MockUsers.update(user.id, {
+      password: passwordData.newPassword
+    })
+  }
+  
   showSuccessToast(t('profile.passwordChanged'))
   passwordData.currentPassword = ''
   passwordData.newPassword = ''
@@ -451,6 +526,11 @@ const changePassword = () => {
 
 // Salvar consentimento (apenas a opção de comunicações)
 const saveConsent = () => {
+  if (user.id) {
+    MockUsers.update(user.id, {
+      communicationsAccepted: consent.communicationsAccepted
+    })
+  }
   showSuccessToast(t('profile.preferencesSaved'))
 }
 
@@ -484,15 +564,37 @@ const closeRevokeModal = () => {
 
 const confirmRevokeConsent = () => {
   if (confirmDeleteText.value === t('profile.confirmDeleteText')) {
+    if (user.id) {
+      // Registrar log de exclusão da própria conta
+      const currentUser = authUsecase.getCurrentUser()
+      if (currentUser && currentUser.uuid) {
+        LogsMock.registerAction(
+          currentUser.uuid,
+          currentUser.name,
+          currentUser.role,
+          'Exclusão de Conta Própria',
+          'delete',
+          currentUser.uuid,
+          '127.0.0.1'
+        )
+      }
+      // Excluir o usuário
+      MockUsers.hardDelete(user.id)
+    }
+    authUsecase.logout()
     showSuccessToast(t('profile.accountDeleted'))
     
     setTimeout(() => {
-      router.push('/')
+      router.push('/login')
     }, 2000)
     
     closeRevokeModal()
   }
 }
+
+onMounted(() => {
+  loadUserData()
+})
 </script>
 
 <style scoped>

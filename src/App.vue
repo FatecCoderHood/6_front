@@ -19,15 +19,31 @@
   }]">
     <router-view />
   </div>
+  
+  <!-- Container de toasts -->
+  <div class="toasts-container">
+    <ToastNotification
+      v-for="toast in toasts"
+      :key="toast.id"
+      :type="toast.type"
+      :title="toast.title"
+      :message="toast.message"
+      :duration="toast.duration"
+      @close="removeToast(toast.id)"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import AppSidebar from './components/AppSidebar.vue'
+import ToastNotification from './components/ToastNotification.vue'
+import { useToast } from './composables/useToast'
 
 const route = useRoute()
 const sidebarOpen = ref(true)
+const { toasts, removeToast } = useToast()
 
 function handleToggle() {
   sidebarOpen.value = !sidebarOpen.value
@@ -38,7 +54,7 @@ function onSensorEnter() {
 }
 
 function onSensorLeave() {
-
+  // Não faz nada, mantém o estado atual
 }
 </script>
 
@@ -89,11 +105,34 @@ body {
   background: transparent;
 }
 
+/* Container de toasts */
+.toasts-container {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.toasts-container > * {
+  pointer-events: auto;
+}
+
 @media (max-width: 768px) {
   .main-content.sidebar-open,
   .main-content.sidebar-closed {
     margin-left: 0;
     max-width: 100%;
+  }
+  
+  .toasts-container {
+    left: 0;
+    right: 0;
+    bottom: 1rem;
+  }
+  
+  .toasts-container > * {
+    margin: 0 1rem;
   }
 }
 </style>

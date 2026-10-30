@@ -13,22 +13,13 @@
       <!-- Header -->
       <div class="header">
         <div class="title-section">
-          <h1>{{ t('forecast.title') }}</h1>
-          <p>{{ t('forecast.subtitle') }}</p>
+          <h1 class="page-title">{{ t('forecast.title') }}</h1>
+          <p class="page-subtitle">{{ t('forecast.subtitle') }}</p>
         </div>
       </div>
 
       <!-- Filtros -->
       <div class="filters-card">
-        <div class="filter-group">
-          <label>{{ t('forecast.unitCode') }}</label>
-          <input 
-            v-model="filters.cod_unidade" 
-            type="number" 
-            placeholder="13654"
-            class="filter-input"
-          />
-        </div>
         <div class="filter-group">
           <label>{{ t('forecast.indicator') }}</label>
           <select v-model="filters.indicador" class="filter-select">
@@ -36,9 +27,18 @@
             <option value="FEC">FEC</option>
           </select>
         </div>
+        <div class="filter-group">
+          <label>{{ t('forecast.agent') }}</label>
+          <select v-model="filters.sig_agente" class="filter-select">
+            <option value="">Todos os Agentes</option>
+            <option v-for="agente in agentes" :key="agente.sigla" :value="agente.sigla">
+              {{ agente.sigla }} - {{ agente.nome }}
+            </option>
+          </select>
+        </div>
         <button class="btn-filter" @click="fetchPrevisoes">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M4 4L20 20M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
           {{ t('forecast.search') }}
         </button>
@@ -118,10 +118,10 @@
           </div>
         </div>
 
-        <!-- Gráfico de Linhas -->
+        <!-- Gráfico de Linhas com Animação -->
         <div class="chart-card">
           <div class="chart-header">
-            <h3>{{ t('forecast.predictionTimeline') }}</h3>
+            <h3>{{ t('forecast.predictionTimeline') }} - {{ filters.sig_agente || 'Todos os Agentes' }}</h3>
             <div class="chart-legend">
               <span class="legend-item">
                 <span class="legend-color actual"></span>
@@ -133,7 +133,9 @@
               </span>
             </div>
           </div>
-          <canvas ref="chartCanvas" class="chart-canvas"></canvas>
+          <div class="chart-wrapper">
+            <canvas ref="chartCanvas" class="chart-canvas"></canvas>
+          </div>
         </div>
 
         <!-- Tabela de Dados -->
@@ -144,6 +146,7 @@
               <thead>
                 <tr>
                   <th>{{ t('forecast.date') }}</th>
+                  <th>{{ t('forecast.agent') }}</th>
                   <th>MAE</th>
                   <th>{{ t('forecast.prediction') }}</th>
                   <th>{{ t('forecast.difference') }}</th>
@@ -152,6 +155,7 @@
               <tbody>
                 <tr v-for="(item, index) in previsoes" :key="index">
                   <td>{{ formatDate(item.data) }}</td>
+                  <td>{{ item.sig_agente }}</td>
                   <td>{{ item.mae.toFixed(6) }}</td>
                   <td class="prediction-value">{{ item.previsao.toFixed(6) }}</td>
                   <td :class="getDiffClass(item)">
@@ -188,25 +192,19 @@
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Chart from 'chart.js/auto'
+import { PrevisaoMock, type Previsao, agentesDisponiveis } from '../service/PrevisaoMock'
 
 const { t } = useI18n()
-
-// Interfaces
-interface Previsao {
-  cod_unidade: number
-  indicador: string
-  mae: number
-  data: string
-  previsao: number
-}
 
 // Estado
 const previsoes = ref<Previsao[]>([])
 const loading = ref(false)
 const filters = reactive({
-  cod_unidade: 13654,
-  indicador: 'FEC'
+  indicador: 'FEC',
+  sig_agente: ''
 })
+
+const agentes = agentesDisponiveis
 
 // Referência para o gráfico
 const chartCanvas = ref<HTMLCanvasElement | null>(null)
@@ -259,39 +257,30 @@ const getDiffClass = (item: Previsao) => {
   return 'diff-neutral'
 }
 
-const fetchPrevisoes = async () => {
-  loading.value = true
-  try {
-    const url = `http://localhost:8000/previsoes?cod_unidade=${filters.cod_unidade}&indicador=${filters.indicador}`
-    const response = await fetch(url)
-    const data = await response.json()
-    previsoes.value = data.dados || []
-    
-    // Atualizar gráfico após os dados carregarem
-    await nextTick()
-    updateChart()
-  } catch (error) {
-    console.error('Erro ao buscar previsões:', error)
-    previsoes.value = []
-  } finally {
-    loading.value = false
+const destroyChart = () => {
+  if (chartInstance) {
+    chartInstance.destroy()
+    chartInstance = null
   }
 }
 
-const updateChart = () => {
-  if (!chartCanvas.value) return
-  
-  // Destruir gráfico existente
-  if (chartInstance) {
-    chartInstance.destroy()
+const createChart = () => {
+  if (!chartCanvas.value) {
+    console.log('Canvas element not found')
+    return false
   }
   
-  // Preparar dados
+  if (previsoes.value.length === 0) {
+    console.log('No data to display')
+    return false
+  }
+  
   const labels = previsoes.value.map(item => formatDate(item.data))
   const maeData = previsoes.value.map(item => item.mae)
   const previsaoData = previsoes.value.map(item => item.previsao)
   
-  // Criar novo gráfico
+  console.log('Creating animated chart with', labels.length, 'data points')
+  
   chartInstance = new Chart(chartCanvas.value, {
     type: 'line',
     data: {
@@ -301,27 +290,38 @@ const updateChart = () => {
           label: 'MAE (Erro Médio Absoluto)',
           data: maeData,
           borderColor: '#FFD700',
-          backgroundColor: 'rgba(255, 215, 0, 0.1)',
+          backgroundColor: 'rgba(255, 215, 0, 0.05)',
           borderWidth: 3,
-          tension: 0.4,
-          pointRadius: 4,
+          tension: 0.3,
+          pointRadius: 5,
+          pointHoverRadius: 7,
           pointBackgroundColor: '#FFD700',
           pointBorderColor: '#0a0a0a',
           pointBorderWidth: 2,
-          fill: true
+          fill: true,
+          animation: {
+            duration: 2000,
+            easing: 'easeInOutQuart'
+          }
         },
         {
           label: 'Previsão',
           data: previsaoData,
           borderColor: '#4CAF50',
-          backgroundColor: 'rgba(76, 175, 80, 0.1)',
+          backgroundColor: 'rgba(76, 175, 80, 0.05)',
           borderWidth: 3,
-          tension: 0.4,
-          pointRadius: 4,
+          tension: 0.3,
+          pointRadius: 5,
+          pointHoverRadius: 7,
           pointBackgroundColor: '#4CAF50',
           pointBorderColor: '#0a0a0a',
           pointBorderWidth: 2,
-          fill: true
+          fill: true,
+          animation: {
+            duration: 2000,
+            easing: 'easeInOutQuart',
+            delay: 500
+          }
         }
       ]
     },
@@ -333,23 +333,27 @@ const updateChart = () => {
           position: 'bottom',
           labels: {
             color: 'white',
-            font: { size: 12 }
+            font: { size: 12, weight: '500' },
+            usePointStyle: true,
+            pointStyle: 'circle'
           }
         },
         tooltip: {
           mode: 'index',
           intersect: false,
-          backgroundColor: 'rgba(0,0,0,0.8)',
+          backgroundColor: 'rgba(0,0,0,0.85)',
           titleColor: '#FFD700',
           bodyColor: 'white',
           borderColor: '#FFD700',
-          borderWidth: 1
+          borderWidth: 1,
+          padding: 10
         }
       },
       scales: {
         y: {
           grid: {
-            color: 'rgba(255, 255, 255, 0.1)'
+            color: 'rgba(255, 255, 255, 0.08)',
+            drawBorder: true
           },
           ticks: {
             color: 'white'
@@ -357,21 +361,28 @@ const updateChart = () => {
           title: {
             display: true,
             text: t('forecast.value'),
-            color: 'white'
+            color: 'rgba(255, 255, 255, 0.7)'
+          },
+          animation: {
+            duration: 1000
           }
         },
         x: {
           grid: {
-            color: 'rgba(255, 255, 255, 0.1)'
+            color: 'rgba(255, 255, 255, 0.08)'
           },
           ticks: {
             color: 'white',
-            rotation: 45
+            maxRotation: 45,
+            minRotation: 45
           },
           title: {
             display: true,
             text: t('forecast.date'),
-            color: 'white'
+            color: 'rgba(255, 255, 255, 0.7)'
+          },
+          animation: {
+            duration: 1000
           }
         }
       },
@@ -382,17 +393,52 @@ const updateChart = () => {
       }
     }
   })
+  
+  return true
 }
 
-// Watch para quando os dados mudarem
-watch(previsoes, async () => {
+const updateChart = async () => {
   await nextTick()
-  updateChart()
+  destroyChart()
+  
+  setTimeout(() => {
+    createChart()
+  }, 100)
+}
+
+const fetchPrevisoes = async () => {
+  loading.value = true
+  
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    const dados = PrevisaoMock.getByFilters(
+      13654,
+      filters.indicador,
+      filters.sig_agente || undefined
+    )
+    previsoes.value = dados
+    
+    console.log('Data loaded:', previsoes.value.length, 'items')
+    
+    await updateChart()
+  } catch (error) {
+    console.error('Error fetching predictions:', error)
+    previsoes.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+watch([() => filters.indicador, () => filters.sig_agente], () => {
+  fetchPrevisoes()
 })
 
-// Carregar dados iniciais
 onMounted(() => {
-  fetchPrevisoes()
+  console.log('Component mounted, initializing animated chart...')
+  setTimeout(() => {
+    fetchPrevisoes()
+  }, 100)
 })
 </script>
 
@@ -471,15 +517,14 @@ onMounted(() => {
 
 .title-section h1 {
   font-size: 2.5rem;
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  font-weight: 700;
+  color: #FFD700;
   margin-bottom: 0.5rem;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
 .title-section p {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 1rem;
 }
 
@@ -495,10 +540,12 @@ onMounted(() => {
   align-items: flex-end;
   margin-bottom: 2rem;
   animation: fadeInUp 0.8s ease;
+  flex-wrap: wrap;
 }
 
 .filter-group {
   flex: 1;
+  min-width: 200px;
 }
 
 .filter-group label {
@@ -508,7 +555,6 @@ onMounted(() => {
   margin-bottom: 0.5rem;
 }
 
-.filter-input,
 .filter-select {
   width: 100%;
   padding: 10px 12px;
@@ -520,11 +566,15 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
-.filter-input:focus,
 .filter-select:focus {
   outline: none;
   border-color: #FFD700;
   background: rgba(255, 215, 0, 0.05);
+}
+
+.filter-select option {
+  background: #1a1a1a;
+  color: white;
 }
 
 .btn-filter {
@@ -595,12 +645,13 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .metric-card:hover {
   border-color: #FFD700;
-  transform: translateY(-5px);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(255, 215, 0, 0.15);
 }
 
 .metric-icon {
@@ -659,6 +710,24 @@ onMounted(() => {
   border: 1px solid rgba(255, 215, 0, 0.2);
   border-radius: 16px;
   padding: 1.5rem;
+  animation: chartFadeIn 0.6s ease;
+}
+
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+}
+
+@keyframes chartFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .chart-header {
@@ -671,8 +740,9 @@ onMounted(() => {
 }
 
 .chart-header h3 {
-  color: white;
+  color: #FFD700;
   font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .chart-legend {
@@ -703,8 +773,14 @@ onMounted(() => {
 }
 
 .chart-canvas {
-  max-height: 400px;
   width: 100%;
+  height: auto;
+  max-height: 400px;
+  transition: all 0.3s ease;
+}
+
+.chart-canvas:hover {
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.2));
 }
 
 /* Table Card */
@@ -717,8 +793,9 @@ onMounted(() => {
 }
 
 .table-card h3 {
-  color: white;
+  color: #FFD700;
   font-size: 1.2rem;
+  font-weight: 600;
   margin-bottom: 1.5rem;
 }
 
@@ -747,6 +824,15 @@ onMounted(() => {
 .data-table td {
   color: rgba(255, 255, 255, 0.8);
   font-size: 0.9rem;
+}
+
+.data-table tr {
+  transition: all 0.2s ease;
+}
+
+.data-table tr:hover {
+  background: rgba(255, 215, 0, 0.05);
+  transform: translateX(5px);
 }
 
 .prediction-value {
@@ -836,9 +922,17 @@ onMounted(() => {
     padding: 1rem;
   }
 
+  .title-section h1 {
+    font-size: 1.8rem;
+  }
+
   .filters-card {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .filter-group {
+    min-width: 100%;
   }
 
   .btn-filter {
@@ -854,10 +948,44 @@ onMounted(() => {
     align-items: flex-start;
   }
 
+  .chart-wrapper {
+    min-height: 300px;
+  }
+
   .data-table th,
   .data-table td {
     padding: 8px;
     font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .metric-card {
+    padding: 1rem;
+  }
+
+  .metric-icon {
+    width: 45px;
+    height: 45px;
+  }
+
+  .metric-value {
+    font-size: 1.2rem;
+  }
+
+  .chart-card,
+  .table-card {
+    padding: 1rem;
+  }
+
+  .chart-wrapper {
+    min-height: 250px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 6px;
+    font-size: 0.7rem;
   }
 }
 </style>

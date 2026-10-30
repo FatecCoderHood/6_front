@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      vue-ecosystem:
+        patterns: ["vue", "vue-*", "@vue/*", "@vitejs/*", "vite"]
+      lint:
+        patterns: ["eslint*", "@eslint/*", "typescript-eslint", "globals"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

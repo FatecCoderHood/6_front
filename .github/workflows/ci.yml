@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [develop, release]
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: frontend (lint, build, sonar)
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Sonar needs full history for accurate new-code detection
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      # Pre-existing type errors (memory note, gap 7): non-blocking until cleaned up.
+      - name: Type-check
+        run: npx vue-tsc -b
+        continue-on-error: true
+      - name: Build (real API mode)
+        run: npx vite build
+      - name: Build (mock mode)
+        run: npx vite build
+        env:
+          VITE_USE_MOCKS: "true"
+
+      # Skipped when the token is absent (for example, pull requests from forks).
+      - name: SonarCloud analysis
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v7
+        with:
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY_WEB }}

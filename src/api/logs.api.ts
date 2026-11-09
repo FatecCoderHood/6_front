@@ -38,7 +38,7 @@ const toLogEntry = (dto: AuditLogResponseDto, index: number): LogEntry => {
 const logsReal: LogsApi = {
   async getAll() {
     const entries = await apiClient.get<AuditLogResponseDto[]>('/audit-logs')
-    return entries.map(toLogEntry)
+    return entries.map((entry, index) => toLogEntry(entry, index))
   }
 }
 

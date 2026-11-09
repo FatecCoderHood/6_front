@@ -32,6 +32,8 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+      - name: Unit tests with coverage
+        run: npm run test:coverage
       # Pre-existing type errors (memory note, gap 7): non-blocking until cleaned up.
       - name: Type-check
         run: npx vue-tsc -b

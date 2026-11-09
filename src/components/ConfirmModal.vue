@@ -27,6 +27,7 @@
         class="modal-reason"
         rows="3"
         :placeholder="reasonLabel"
+        :aria-label="reasonLabel"
       ></textarea>
       <div class="modal-actions">
         <button class="btn-cancel" @click="handleCancel">

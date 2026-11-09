@@ -48,7 +48,7 @@ jobs:
       # Skipped when the token is absent (for example, pull requests from forks).
       - name: SonarCloud analysis
         if: ${{ env.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@v7
+        uses: SonarSource/sonarqube-scan-action@v8
         with:
           args: >
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}

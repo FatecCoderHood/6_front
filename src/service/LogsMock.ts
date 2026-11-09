@@ -122,7 +122,7 @@ export const LogsMock = {
   },
 
   registerAction: (userUuid: string, userName: string, userRole: 'admin' | 'user', action: string, actionType: LogEntry['actionType'], targetUuid?: string, ip?: string) => {
-    let details = ''
+    let details: string
     
     switch(actionType) {
       case 'approve':

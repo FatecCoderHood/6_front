@@ -7,3 +7,7 @@ export const API_CONFIG = {
     'Content-Type': 'application/json',
   }
 }
+
+// Single switch between in-memory mocks and the real backend (see .env.example).
+// Defaults to the real backend; only the literal string "true" enables mocks.
+export const USE_MOCKS: boolean = import.meta.env.VITE_USE_MOCKS === 'true'

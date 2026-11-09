@@ -1,5 +1,6 @@
 // src/service/auth.usecase.ts
-import { MockUsers, type MockUser } from './UsersMock'
+import authApi from '../api/auth.api'
+import { USE_MOCKS } from '../config/api.config'
 import LogsMock from './LogsMock'
 
 class AuthUsecase {
@@ -7,37 +8,15 @@ class AuthUsecase {
   private userKey = 'user_data'
 
   async login(email: string, password: string): Promise<any> {
-    const user = MockUsers.authenticate(email, password)
-    
-    if (user) {
-      LogsMock.registerAction(
-        user.uuid,
-        user.name,
-        user.role,
-        'Login',
-        'login',
-        undefined,
-        '127.0.0.1'
-      )
-      
-      return {
-        token: `fake-jwt-token-${user.id}`,
-        user: {
-          id: user.id,
-          uuid: user.uuid,        // ← ADICIONE O UUID AQUI
-          name: user.name,
-          email: user.email,
-          role: user.role
-        }
-      }
+    const resp = await authApi.login({ email, password })
+    // The API role is ADMIN | USER; the UI compares lowercase values.
+    const user = { ...resp.user, uuid: resp.user.id, role: resp.user.role.toLowerCase() }
+
+    if (USE_MOCKS) {
+      LogsMock.registerAction(user.uuid, user.name, user.role, 'Login', 'login', undefined, '127.0.0.1')
     }
-    
-    const pendingUser = MockUsers.getByEmail(email)
-    if (pendingUser && pendingUser.status === 'pending') {
-      throw new Error('CONTA_PENDENTE: Seu cadastro está aguardando aprovação do administrador.')
-    }
-    
-    throw new Error('Credenciais inválidas')
+
+    return { token: resp.token, user }
   }
 
   persist(authData: any, remember: boolean = false) {
@@ -85,7 +64,7 @@ class AuthUsecase {
 
   logout() {
     const currentUser = this.getCurrentUser()
-    if (currentUser && currentUser.uuid) {
+    if (USE_MOCKS && currentUser && currentUser.uuid) {
       LogsMock.registerAction(
         currentUser.uuid,
         currentUser.name,

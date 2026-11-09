@@ -27,8 +27,8 @@ const generateMockData = (cod_unidade: number, sig_agente: string, indicador: st
     date.setMonth(startDate.getMonth() + i)
     
     // Variação mensal
-    let variationMAE = 0
-    let variationPrevisao = 0
+    let variationMAE: number
+    let variationPrevisao: number
     
     if (trend === 'crescente') {
       variationMAE = (Math.random() * 0.3) + (i * 0.05)

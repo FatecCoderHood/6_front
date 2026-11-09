@@ -343,7 +343,7 @@ const loadLogs = async () => {
 }
 
 onMounted(() => {
-  loadLogs()
+  void loadLogs()
 })
 </script>
 

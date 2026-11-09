@@ -283,7 +283,7 @@ const handleImageError = (event: Event) => {
 }
 
 const goBack = () => {
-  router.push('/login')
+  void router.push('/login')
 }
 
 const closeTermsModal = () => {
@@ -335,7 +335,7 @@ const handleCadastro = async () => {
     )
     
     setTimeout(() => {
-      router.push('/login')
+      void router.push('/login')
     }, 3000)
   } catch (err: any) {
     console.error('Erro no cadastro', err)

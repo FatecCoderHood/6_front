@@ -569,14 +569,14 @@ const confirmRevokeConsent = async () => {
   showSuccessToast(t('profile.accountDeleted'))
 
   setTimeout(() => {
-    router.push('/login')
+    void router.push('/login')
   }, 2000)
 
   closeRevokeModal()
 }
 
 onMounted(() => {
-  loadUserData()
+  void loadUserData()
 })
 </script>
 

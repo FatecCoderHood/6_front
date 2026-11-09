@@ -354,7 +354,7 @@ const rejectUser = (user: User) => openConfirmModal('reject', user)
 const softDeleteUser = (user: User) => openConfirmModal('delete', user)
 
 onMounted(() => {
-  loadUsers()
+  void loadUsers()
 })
 
 const svg = (path: string, size = 16) => {

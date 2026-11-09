@@ -150,7 +150,7 @@ const handleLogin = async () => {
     info('Redirecionando para o sistema...', 'Login realizado!')
     
     setTimeout(() => {
-      router.push('/')
+      void router.push('/')
     }, 1000)
   } catch (err: any) {
     console.error('Login error', err)
